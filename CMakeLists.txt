@@ -17,6 +17,7 @@ project(vision_processor)
 
 option(WITH_SPINNAKER "Build with Spinnaker support (if library available)" ON)
 option(WITH_MVIMPACT "Build with mvIMPACT/Bluefox support (if library available)" ON)
+option(WITH_DC1394 "Build with DC1394 support (if library available)" ON)
 
 # Adapted from https://stackoverflow.com/a/48832234 CC BY-SA 4.0 by einpoklum
 if (NOT CMAKE_BUILD_TYPE OR CMAKE_BUILD_TYPE STREQUAL "")
@@ -33,6 +34,7 @@ pkg_check_modules(LIBAV REQUIRED IMPORTED_TARGET libavformat libavcodec libavuti
 
 find_package(Eigen3 REQUIRED)
 find_package(mvIMPACT)
+find_package(DC1394)
 find_package(Protobuf REQUIRED)
 find_package(OpenCL REQUIRED)
 find_package(OpenCV REQUIRED COMPONENTS core imgproc imgcodecs videoio)
@@ -42,7 +44,7 @@ find_package(yaml-cpp REQUIRED)
 
 add_compile_definitions(CL_HPP_TARGET_OPENCL_VERSION=300)
 # m (c math) and stdc++ (c++ standard library) explicitly required by LLD
-link_libraries("m" "stdc++" ${YAML_CPP_LIBRARIES} ${OpenCV_LIBS} PkgConfig::LIBAV ${SPINNAKER_LIBS} OpenCL::OpenCL ${Protobuf_LIBRARIES} ${mvIMPACT_LIBS})
+link_libraries("m" "stdc++" ${YAML_CPP_LIBRARIES} ${OpenCV_LIBS} PkgConfig::LIBAV ${SPINNAKER_LIBS} OpenCL::OpenCL ${Protobuf_LIBRARIES} ${mvIMPACT_LIBS} ${DC1394_LIBRARIES})
 include_directories(SYSTEM ${YAML_INCLUDE_DIRS} ${OpenCV_INCLUDE_DIRS} ${SPINNAKER_INCLUDE_DIRS} ${Protobuf_INCLUDE_DIRS} Eigen3::Eigen ${mvIMPACT_INCLUDE_DIRS})
 
 include_directories(src)
