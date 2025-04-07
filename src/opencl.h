@@ -15,7 +15,11 @@
  */
 #pragma once
 
+#if __has_include(<CL/opencl.hpp>)
 #include <CL/opencl.hpp>
+#else // Older versions like in Ubuntu 20.04
+#include <CL/cl.hpp>
+#endif
 
 #include <vector>
 #include <iostream>
