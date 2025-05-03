@@ -75,6 +75,9 @@ Installation with PIP: `pip install protobuf pyyaml`
 
 ## Troubleshooting
 
+If no OpenCL platform can be found despite OpenCL driver installation, check the users groups and permission to compute
+on the GPU (e.g. for Intel: ![necessary user groups](https://www.intel.com/content/www/us/en/docs/oneapi/installation-guide-hpc-cluster/2023-0/step-4-set-up-user-permissions-for-using-the.html#SET-PERMISSIONS)).
+
 The video livestream cycles through 4 different views:
 1. **Raw camera data**
    If the data is very bright, dark or miscolored consider adjusting

@@ -55,6 +55,10 @@ SpinnakerDriver::SpinnakerDriver(unsigned int id, double exposure, double gain, 
 		sleep(1);
 	}
 
+	// Reset camera parameters
+	CATCH_SPINNAKER(pCam->UserSetDefault.SetValue(Spinnaker::UserSetDefault_Default))
+	CATCH_SPINNAKER(pCam->UserSetSelector.SetValue(Spinnaker::UserSetSelector_Default))
+
 	CATCH_SPINNAKER(pCam->TriggerMode.SetValue(Spinnaker::TriggerMode_Off))
 	CATCH_SPINNAKER(pCam->AcquisitionMode.SetValue(Spinnaker::AcquisitionMode_Continuous))
 	CATCH_SPINNAKER(pCam->PixelFormat.SetValue(Spinnaker::PixelFormat_BayerRG8))

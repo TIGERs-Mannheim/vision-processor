@@ -45,6 +45,7 @@ field:
   #  thickness: 0.0
   #  type: Undefined
 
+# acc_slide and acc_roll are in m/s²
 #models:
 #  straight_two_phase:
 #    acc_slide: 0.0
