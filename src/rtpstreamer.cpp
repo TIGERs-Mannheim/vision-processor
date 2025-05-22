@@ -132,6 +132,7 @@ void RTPStreamer::freeResources() {
 	}
 
 	if(fmtCtx != nullptr) {
+		avio_close(fmtCtx->pb);
 		avformat_free_context(fmtCtx);
 		fmtCtx = nullptr;
 	}
