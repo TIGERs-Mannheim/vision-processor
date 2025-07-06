@@ -505,6 +505,8 @@ static bool cornerCalibration(const Resources& r, const std::vector<std::vector<
 }
 
 void geometryCalibration(const Resources& r, const CLImage& rgba) {
+	rgba.save(".geomcalib_input.png");
+
 	cv::Mat bgr;
 	cv::cvtColor(rgba.read<RGBA>().cv, bgr, cv::COLOR_RGBA2BGR);
 	cv::Mat gray;
