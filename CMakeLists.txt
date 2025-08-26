@@ -21,7 +21,7 @@ option(WITH_MVIMPACT "Build with mvIMPACT/Bluefox support (if library available)
 
 # Adapted from https://stackoverflow.com/a/48832234 CC BY-SA 4.0 by einpoklum
 if (NOT CMAKE_BUILD_TYPE OR CMAKE_BUILD_TYPE STREQUAL "")
-    set(CMAKE_BUILD_TYPE "Release" CACHE STRING "" FORCE)
+    set(CMAKE_BUILD_TYPE "RelWithDebInfo" CACHE STRING "" FORCE)
 endif()
 
 set(CMAKE_CXX_STANDARD 20)

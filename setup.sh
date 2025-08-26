@@ -45,6 +45,8 @@ else
                 echo -e "\e[92m »  Intel graphics card selected\e[39m"
                 opencl_arch='intel-compute-runtime intel-media-driver'
                 opencl_debian='intel-opencl-icd intel-media-va-driver-non-free'
+                # Add user to render group to allow screenless gpu access (https://github.com/intel/compute-runtime/issues/701)
+                sudo usermod -a -G render $(whoami)
             else
                 echo -e "\e[91m »  Could not determine graphics card vendor, skipping OpenCL driver check and installation\e[39m" >&2
                 opencl_arch=
@@ -78,6 +80,53 @@ else
     $install_cmd
 fi
 
+
 # Compile vision_processor
+SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+cd "$SCRIPT_DIR"
 cmake -B build .
 make -j -C build vision_processor
+
+
+# Install systemd service(s)
+function install_service {
+    echo -e "\e[92m »  Enabling and (re-)starting $1 service\e[39m"
+
+    systemd_folder="$HOME/.local/share/systemd/user"
+    mkdir -p "$systemd_folder"
+
+    cat > "$systemd_folder/$1.service" <<EOL
+[Unit]
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+Restart=always
+ExecStart=$SCRIPT_DIR/$2
+WorkingDirectory=$SCRIPT_DIR
+
+[Install]
+WantedBy=default.target
+EOL
+
+    systemctl --user enable "$1.service"
+    systemctl --user daemon-reload
+    systemctl --user restart "$1.service"
+}
+
+read -p " »  Install systemd service(s)? [yn]» " enable_systemd
+if [ "$enable_systemd" = "y" ]; then
+    install_service vision_processor build/vision_processor
+
+    read -p " »  Enable geom_publisher service? [yN]» " enable_geom
+    if [ "$enable_geom" = "y" ]; then
+        install_service geom_publisher "python/geom_publisher.py geometry.yml"
+    else
+        echo " »  Skipping geom_publisher service installationa"
+    fi
+else
+    echo " »  Skipping systemd service installation"
+fi
+
+echo -e "\e[92m »  Done\e[39m"
