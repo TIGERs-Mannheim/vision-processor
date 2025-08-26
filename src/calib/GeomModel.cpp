@@ -436,10 +436,6 @@ static bool cornerCalibration(const Resources& r, const std::vector<std::vector<
 		if(!isClockwiseConvexQuadrilateral(edges))
 			continue;
 
-		// Ensure 3D cartesian coordinates match camera orientation on single camera fields (resolve ambiguity)
-		if(r.cameraAmount == 1 && (edges[0] + edges[3]).y() < (edges[1] + edges[2]).y())
-			continue;
-
 		//Ensure first point is minmin point
 		if(r.lineCorners[0] != edges[0])
 			continue;
@@ -493,7 +489,7 @@ static bool cornerCalibration(const Resources& r, const std::vector<std::vector<
 			minModel = model;
 		}
 
-		} while(std::next_permutation(edges.begin(), edges.end(), [](const auto& l, const auto& r){ return r.y() > l.y() || (r.y() == l.y() && r.x() > l.x()); }));
+	} while(std::next_permutation(edges.begin(), edges.end(), [](const auto& l, const auto& r){ return r.y() > l.y() || (r.y() == l.y() && r.x() > l.x()); }));
 
 	if(minError == INFINITY) {
 		std::cerr << "[Geometry calibration] Unable to find matching field model, aborting calibration for this frame." << std::endl;

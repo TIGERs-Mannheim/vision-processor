@@ -72,7 +72,7 @@ CameraModel::CameraModel(const Eigen::Vector2i &size, int camId, int camAmount, 
 	//Whole field visible
 	Eigen::Vector2f orderedSize(size.maxCoeff(), size.minCoeff());
 	Eigen::Vector2f orderedExtent((max - min).maxCoeff(), (max - min).minCoeff());
-	focalLength = ((orderedSize - principalPoint).array() * pos.z() / orderedExtent.array()).minCoeff();
+	focalLength = ((orderedSize - principalPoint).array() * pos.z() / orderedExtent.array()).minCoeff() * 2;
 
 	updateDerived();
 }

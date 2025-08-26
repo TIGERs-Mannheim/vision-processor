@@ -85,7 +85,7 @@ kernel void resampling(read_only image2d_t channel0, read_only image2d_t channel
 	// dRGB
 	write_imageui(out, (int2)(get_global_id(0), get_global_id(1)), (uint4)(
 			(2*color.r - color.g - color.b + 510) / 4,
-			(2*color.g - color.r - color.b + 510) / 4,
+			(2*color.g - color.b - color.r + 510) / 4,
 			(2*color.b - color.r - color.g + 510) / 4,
 			255
 	));
