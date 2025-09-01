@@ -23,7 +23,7 @@
 
 class MVImpactDriver : public CameraDriver {
 public:
-	explicit MVImpactDriver(unsigned int id, double exposure, double gain, WhiteBalanceType wbType, const std::vector<double>& wbValues);
+	explicit MVImpactDriver(const CameraConfig& config);
 	~MVImpactDriver() override;
 
 	std::shared_ptr<RawImage> readImage() override;

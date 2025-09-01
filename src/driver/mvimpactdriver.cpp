@@ -28,13 +28,13 @@ private:
 };
 
 
-MVImpactDriver::MVImpactDriver(const unsigned int id, double exposure, double gain, WhiteBalanceType wbType, const std::vector<double>& wbValues) {
-	while(devMgr.deviceCount() <= id) {
-		std::cerr << "[mvIMPACT] Waiting for cam: " << devMgr.deviceCount() << "/" << (id+1) << std::endl;
+MVImpactDriver::MVImpactDriver(const CameraConfig& config) {
+	while(devMgr.deviceCount() <= config.hardwareId) {
+		std::cerr << "[mvIMPACT] Waiting for cam: " << devMgr.deviceCount() << "/" << (config.hardwareId+1) << std::endl;
 		sleep(1);
 		devMgr.updateDeviceList();
 	}
-	device = devMgr[id];
+	device = devMgr[config.hardwareId];
 	device->userControlledImageProcessingEnable.write(TBoolean::bFalse);
 
 	try {
@@ -51,28 +51,33 @@ MVImpactDriver::MVImpactDriver(const unsigned int id, double exposure, double ga
 	settings.cameraSetting.pixelFormat.write(TImageBufferPixelFormat::ibpfMono8);
 	settings.imageDestination.pixelFormat.write(TImageDestinationPixelFormat::idpfRaw);
 
-	if(exposure == 0.0) {
+	if(!config.autoResolution()) {
+		settings.imageDestination.imageWidth.write(config.width);
+		settings.imageDestination.imageHeight.write(config.height);
+	}
+
+	if(config.autoExposure()) {
 		settings.cameraSetting.autoExposeControl.write(TAutoExposureControl::aecOn);
 	} else {
 		settings.cameraSetting.autoExposeControl.write(TAutoExposureControl::aecOff);
-		settings.cameraSetting.expose_us.write((int)(exposure * 1000));
+		settings.cameraSetting.expose_us.write((int)(config.exposure * 1000));
 	}
 
-	if(gain == 0.0) {
+	if(config.autoGain()) {
 		settings.cameraSetting.autoGainControl.write(TAutoGainControl::agcOn);
 	} else {
 		settings.cameraSetting.autoGainControl.write(TAutoGainControl::agcOff);
-		settings.cameraSetting.gain_dB.write(gain);
+		settings.cameraSetting.gain_dB.write(config.gain);
 	}
 
-	if(wbType != WhiteBalanceType_Manual) {
+	if(config.whiteBalanceType != WhiteBalanceType_Manual) {
 		settings.imageProcessing.whiteBalanceCalibration.write(TWhiteBalanceCalibrationMode::wbcmNextFrame);
 	} else {
 		settings.imageProcessing.whiteBalanceCalibration.write(TWhiteBalanceCalibrationMode::wbcmOff);
 		WhiteBalanceSettings& wb = settings.imageProcessing.getWBUserSetting(0);
 		wb.restoreDefault();
-		wb.blueGain.write(wbValues[0]);
-		wb.redGain.write(wbValues[0]);
+		wb.blueGain.write(config.whiteBalanceBlue);
+		wb.redGain.write(config.whiteBalanceRed);
 		settings.imageProcessing.whiteBalance.write(TWhiteBalanceParameter::wbpUser1);
 	}
 

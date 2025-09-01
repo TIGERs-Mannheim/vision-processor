@@ -16,6 +16,7 @@
 #pragma once
 
 #include <memory>
+#include <yaml-cpp/node/node.h>
 #include "opencl.h"
 
 double getRealTime();
@@ -23,11 +24,13 @@ double getRealTime();
 
 enum WhiteBalanceType {
 	WhiteBalanceType_Manual,
+	// Separate outdoor and indoor auto profiles for cameras with different auto algorithms (e.g. Spinnaker)
 	WhiteBalanceType_AutoOutdoor,
 	WhiteBalanceType_AutoIndoor
 };
 
 
+/** Abstract camera interface for the implementation of arbitrary camera interfaces. */
 class CameraDriver {
 public:
 	virtual ~CameraDriver() = default;
@@ -41,3 +44,34 @@ public:
 	// Bound to the driver for reproducibility during testing with files.
 	virtual double getTime();
 };
+
+
+/** Wrapper for camera options contained in the cam section of config.yml. */
+class CameraConfig {
+public:
+	CameraConfig(const YAML::Node& cam);
+
+	bool autoResolution() const;
+	bool autoExposure() const;
+	bool autoGain() const;
+	bool autoGamma() const;
+
+	std::string driverType;
+
+	int hardwareId;
+	std::string path; // Used for OpenCV, with fallback to /dev/video{hardwareId}
+
+	int width;
+	int height;
+	double exposure;
+	double gain;
+	double gamma;
+
+	WhiteBalanceType whiteBalanceType = WhiteBalanceType_Manual;
+	double whiteBalanceBlue;
+	double whiteBalanceRed;
+	double whiteBalance[2];
+};
+
+
+std::unique_ptr<CameraDriver> openCamera(const CameraConfig& config);

@@ -36,20 +36,20 @@ private:
 	const Spinnaker::ImagePtr pImage;
 };
 
-SpinnakerDriver::SpinnakerDriver(unsigned int id, double exposure, double gain, double gamma, WhiteBalanceType wbType, const std::vector<double>& wbValues) {
+SpinnakerDriver::SpinnakerDriver(const CameraConfig& config) {
 	pSystem = Spinnaker::System::GetInstance();
 
 	while(true) {
 		Spinnaker::CameraList camList = pSystem->GetCameras();
-		if (camList.GetSize() > id) {
-			pCam = camList.GetByIndex(id);
+		if (camList.GetSize() > config.hardwareId) {
+			pCam = camList.GetByIndex(config.hardwareId);
 			pCam->Init();
 			std::cout << "[Spinnaker] Opened " << pCam->DeviceModelName.GetValue() << " - " << pCam->DeviceSerialNumber.GetValue().c_str() << std::endl;
 			camList.Clear();
 			break;
 		}
 
-		std::cerr << "[Spinnaker] Waiting for cam: " << camList.GetSize() << "/" << (id+1) << std::endl;
+		std::cerr << "[Spinnaker] Waiting for cam: " << camList.GetSize() << "/" << (config.hardwareId+1) << std::endl;
 
 		camList.Clear();
 		sleep(1);
@@ -64,45 +64,53 @@ SpinnakerDriver::SpinnakerDriver(unsigned int id, double exposure, double gain, 
 	CATCH_SPINNAKER(pCam->PixelFormat.SetValue(Spinnaker::PixelFormat_BayerRG8))
 	CATCH_SPINNAKER(pCam->AcquisitionFrameRateEnable.SetValue(false))
 
-	if(exposure == 0.0) {
+	if(config.autoResolution()) {
+		CATCH_SPINNAKER(pCam->Width.SetValue(pCam->WidthMax.GetValue()));
+		CATCH_SPINNAKER(pCam->Height.SetValue(pCam->HeightMax.GetValue()));
+	} else {
+		CATCH_SPINNAKER(pCam->Width.SetValue(config.width));
+		CATCH_SPINNAKER(pCam->Height.SetValue(config.height));
+	}
+
+	if(config.autoExposure()) {
 		CATCH_SPINNAKER(pCam->AutoExposureMeteringMode.SetValue(Spinnaker::AutoExposureMeteringMode_Average))
 		CATCH_SPINNAKER(pCam->ExposureAuto.SetValue(Spinnaker::ExposureAuto_Continuous))
 	} else {
 		CATCH_SPINNAKER(pCam->ExposureAuto.SetValue(Spinnaker::ExposureAuto_Off))
-		CATCH_SPINNAKER(pCam->ExposureTime.SetValue(exposure * 1000.0))
+		CATCH_SPINNAKER(pCam->ExposureTime.SetValue(config.exposure * 1000.0))
 	}
 
-	if(gain == 0.0) {
+	if(config.autoGain()) {
 		CATCH_SPINNAKER(pCam->GainAuto.SetValue(Spinnaker::GainAuto_Continuous))
 	} else {
 		CATCH_SPINNAKER(pCam->GainAuto.SetValue(Spinnaker::GainAuto_Off))
-		CATCH_SPINNAKER(pCam->Gain.SetValue(gain))
+		CATCH_SPINNAKER(pCam->Gain.SetValue(config.gain))
 	}
 
-	if(exposure == 0.0 && gain == 0.0) {
+	if(config.autoExposure() && config.autoGain()) {
 		CATCH_SPINNAKER(pCam->AutoExposureControlPriority.SetValue(Spinnaker::AutoExposureControlPriority_Gain))
 	}
 
-	if(gamma == 1.0) {
+	if(config.autoGamma()) {
 		CATCH_SPINNAKER(pCam->GammaEnable.SetValue(false))
 	} else {
 		CATCH_SPINNAKER(pCam->GammaEnable.SetValue(true))
-		CATCH_SPINNAKER(pCam->Gamma.SetValue((float)gamma))
+		CATCH_SPINNAKER(pCam->Gamma.SetValue((float)config.gamma))
 	}
 
-	if(wbType != WhiteBalanceType_Manual) {
+	if(config.whiteBalanceType != WhiteBalanceType_Manual) {
 		CATCH_SPINNAKER(pCam->BalanceWhiteAuto.SetValue(Spinnaker::BalanceWhiteAuto_Continuous))
 		CATCH_SPINNAKER(pCam->BalanceWhiteAutoProfile.SetValue(
-				wbType == WhiteBalanceType_AutoOutdoor
+				config.whiteBalanceType == WhiteBalanceType_AutoOutdoor
 				? Spinnaker::BalanceWhiteAutoProfile_Outdoor
 				: Spinnaker::BalanceWhiteAutoProfile_Indoor
 		))
 	} else {
 		CATCH_SPINNAKER(pCam->BalanceWhiteAuto.SetValue(Spinnaker::BalanceWhiteAuto_Off))
 		CATCH_SPINNAKER(pCam->BalanceRatioSelector.SetValue(Spinnaker::BalanceRatioSelector_Blue))
-		CATCH_SPINNAKER(pCam->BalanceRatio.SetValue(wbValues[0]))
+		CATCH_SPINNAKER(pCam->BalanceRatio.SetValue(config.whiteBalanceBlue))
 		CATCH_SPINNAKER(pCam->BalanceRatioSelector.SetValue(Spinnaker::BalanceRatioSelector_Red))
-		CATCH_SPINNAKER(pCam->BalanceRatio.SetValue(wbValues[1]))
+		CATCH_SPINNAKER(pCam->BalanceRatio.SetValue(config.whiteBalanceRed))
 	}
 
 	pCam->TLStream.StreamBufferHandlingMode.SetValue(Spinnaker::StreamBufferHandlingMode_NewestOnly);

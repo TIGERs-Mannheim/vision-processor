@@ -17,6 +17,11 @@ camera:
   # OpenCV camera device, image or video file path (if unset id is used instead)
   #path: /dev/video0
 
+  # Camera resolution as reported by the camera. VisionProcessor might use half (true color) resolution internally with SPINNAKER and MVIMPACT.
+  # 0 = highest resolution supported by the camera
+  #width: 0
+  #height: 0
+
   # Camera exposure time in ms to adjust brightness. Higher values lead to more motion blur. Lower values lead to a darker image.
   # Camera frame rate will drop if set equal to or higher than the frame time (1 / fps_cam).
   # 0.0 = automatic exposure
@@ -29,10 +34,14 @@ camera:
   # Low values reduce differences between bright and dark illuminated areas. High values increase the color contrast.
   # 1.0 = no gamma
   #gamma: 1.0
+
   # Camera white balance. OUTDOOR or INDOOR for auto white balance with green or gray carpet respectively.
   # (distinction between OUTDOOR and INDOOR currently only implemented for SPINNAKER backend)
-  # [Blue white balance, Red white balance] for manual white balance.
   #white_balance: OUTDOOR
+  # If you want to set manual white balance values use this format:
+  #white_balance:
+  #  red: 1.0
+  #  blue: 1.0
 
 geometry:
   # Total camera amount over the field

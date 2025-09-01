@@ -15,35 +15,41 @@
  */
 #include "opencvdriver.h"
 
-OpenCVDriver::OpenCVDriver(const std::string &path, double exposure, double gain, double gamma, WhiteBalanceType wbType, const std::vector<double> &wbValues): capture(path, cv::CAP_ANY, {cv::CAP_PROP_HW_ACCELERATION, cv::VIDEO_ACCELERATION_ANY}), name(path) {
+OpenCVDriver::OpenCVDriver(const CameraConfig& config): capture(config.path, cv::CAP_ANY, {cv::CAP_PROP_HW_ACCELERATION, cv::VIDEO_ACCELERATION_ANY}), name(config.path) {
 	std::replace(name.begin(), name.end(), '/', '_');
 
-	// Use compressed data stream on USB2 cameras to unlock the highest resolution - framerate combination
+	// Use compressed data stream to unlock the highest resolution - framerate combination on USB2 cameras
 	capture.set(cv::CAP_PROP_FOURCC, cv::VideoWriter::fourcc('M', 'J', 'P', 'G'));
-	capture.set(cv::CAP_PROP_FRAME_WIDTH, INT_MAX);
-	capture.set(cv::CAP_PROP_FRAME_HEIGHT, INT_MAX);
 
-	if(exposure == 0.0) {
+	if(config.autoResolution()) {
+		capture.set(cv::CAP_PROP_FRAME_WIDTH, INT_MAX);
+		capture.set(cv::CAP_PROP_FRAME_HEIGHT, INT_MAX);
+	} else {
+		capture.set(cv::CAP_PROP_FRAME_WIDTH, config.width);
+		capture.set(cv::CAP_PROP_FRAME_HEIGHT, config.height);
+	}
+
+	if(config.autoExposure()) {
 		capture.set(cv::CAP_PROP_AUTO_EXPOSURE, 1.0);
 	} else {
 		capture.set(cv::CAP_PROP_AUTO_EXPOSURE, 0.0);
-		capture.set(cv::CAP_PROP_EXPOSURE, exposure * 1000.0);
+		capture.set(cv::CAP_PROP_EXPOSURE, config.exposure * 1000.0);
 	}
 
-	if(gain != 0.0) {
-		capture.set(cv::CAP_PROP_GAIN, gain);
+	if(!config.autoGain()) {
+		capture.set(cv::CAP_PROP_GAIN, config.gain);
 	}
 
-	if(gamma != 1.0) {
-		capture.set(cv::CAP_PROP_GAMMA, gamma);
+	if(config.autoGamma()) {
+		capture.set(cv::CAP_PROP_GAMMA, config.gamma);
 	}
 
-	if(wbType != WhiteBalanceType_Manual) {
+	if(config.whiteBalanceType != WhiteBalanceType_Manual) {
 		capture.set(cv::CAP_PROP_AUTO_WB, 1.0);
 	} else {
 		capture.set(cv::CAP_PROP_AUTO_WB, 0.0);
-		capture.set(cv::CAP_PROP_WHITE_BALANCE_BLUE_U, wbValues[0]);
-		capture.set(cv::CAP_PROP_WHITE_BALANCE_RED_V, wbValues[1]);
+		capture.set(cv::CAP_PROP_WHITE_BALANCE_BLUE_U, config.whiteBalanceBlue);
+		capture.set(cv::CAP_PROP_WHITE_BALANCE_RED_V, config.whiteBalanceRed);
 	}
 }
 

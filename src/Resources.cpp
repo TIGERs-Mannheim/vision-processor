@@ -17,10 +17,7 @@
 
 #include "cl_kernels.h"
 #include "Resources.h"
-#include "driver/spinnakerdriver.h"
-#include "driver/mvimpactdriver.h"
 #include "driver/cameradriver.h"
-#include "driver/opencvdriver.h"
 
 template<>
 struct YAML::convert<Eigen::Vector2f> {
@@ -70,42 +67,7 @@ static YAML::Node getOptional(const YAML::Node& node) {
 
 Resources::Resources(const YAML::Node& config) {
 	openCl = std::make_shared<OpenCL>();
-
-	YAML::Node cam = getOptional(config["camera"]);
-
-	auto driver = cam["driver"].as<std::string>("SPINNAKER");
-	int driver_id = cam["id"].as<int>(0);
-	auto exposure = cam["exposure"].as<double>(0.0);
-	auto gain = cam["gain"].as<double>(0.0);
-	auto gamma = cam["gamma"].as<double>(1.0);
-
-	YAML::Node wbNode = cam["white_balance"];
-	WhiteBalanceType wbType = WhiteBalanceType_Manual;
-	std::vector<double> wbValues;
-	if(wbNode.IsSequence()) {
-		wbValues = wbNode.as<std::vector<double>>();
-	} else {
-		auto wbTypeString = wbNode.as<std::string>("OUTDOOR");
-		wbType = wbTypeString == "OUTDOOR" ? WhiteBalanceType_AutoOutdoor : WhiteBalanceType_AutoIndoor;
-	}
-
-#ifdef SPINNAKER
-	if(driver == "SPINNAKER")
-		camera = std::make_unique<SpinnakerDriver>(driver_id, exposure, gain, gamma, wbType, wbValues);
-#endif
-
-#ifdef MVIMPACT
-	if(driver == "MVIMPACT")
-		camera = std::make_unique<MVImpactDriver>(driver_id, exposure, gain, wbType, wbValues);
-#endif
-
-	if(driver == "OPENCV")
-		camera = std::make_unique<OpenCVDriver>(cam["path"].as<std::string>("/dev/video" + std::to_string(driver_id)), exposure, gain, gamma, wbType, wbValues);
-
-	if(camera == nullptr) {
-		std::cerr << "[Resources] Unknown camera/image driver defined: " << driver << std::endl;
-		exit(1);
-	}
+	camera = openCamera(CameraConfig(getOptional(config["camera"])));
 
 	camId = config["cam_id"].as<int>(0);
 	if (camId < 0 || camId > 7) {

@@ -21,7 +21,7 @@
 
 class SpinnakerDriver : public CameraDriver {
 public:
-	explicit SpinnakerDriver(unsigned int id, double exposure, double gain, double gamma, WhiteBalanceType wbType, const std::vector<double>& wbValues);
+	explicit SpinnakerDriver(const CameraConfig& config);
 	~SpinnakerDriver() override;
 
 	std::shared_ptr<RawImage> readImage() override;
