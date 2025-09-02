@@ -42,7 +42,7 @@ CameraConfig::CameraConfig(const YAML::Node &cam) {
 	gain = cam["gain"].as<double>(0.0);
 	gamma = cam["gamma"].as<double>(1.0);
 
-	YAML::Node wb = cam["white_balance"];
+	const YAML::Node wb = cam["white_balance"].IsDefined() ? cam["white_balance"] : YAML::Node();
 	if(wb.IsMap()) {
 		whiteBalanceBlue = wb["blue"].as<double>(1.0);
 		whiteBalanceRed = wb["red"].as<double>(1.0);
