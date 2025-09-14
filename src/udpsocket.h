@@ -32,6 +32,7 @@
 #endif
 
 
+/** General purpose protobuf multicast UDP socket wrapper */
 class UDPSocket {
 public:
 	UDPSocket(const std::string& ip, uint16_t port);
@@ -51,6 +52,7 @@ private:
 };
 
 
+/** Internal detection wrapper for position prediction (tracking). */
 struct TrackingState {
 	int id; // -1: ball, 0-15: yellow bot, 16-31: blue bot
 	double timestamp;
@@ -60,39 +62,67 @@ struct TrackingState {
 };
 
 
+/** Socket handling vision messages. */
 class VisionSocket: public UDPSocket {
 public:
-	VisionSocket(const std::string &ip, uint16_t port, float defaultBotHeight): UDPSocket(ip, port), defaultBotHeight(defaultBotHeight) {}
+	VisionSocket(const std::string &ip, uint16_t port, int camId, float defaultBotHeight): UDPSocket(ip, port), camId(camId), defaultBotHeight(defaultBotHeight) {}
 
+	/** Check if a new geometry update has been received and update geometry and geometryVersion accordingly. */
 	void geometryCheck();
 	int getGeometryVersion() const { return geometryVersion; }
 	SSL_GeometryData& getGeometry() { return geometry; }
 
 	std::map<int, std::vector<TrackingState>> getTrackedObjects();
+
+	/** Update the clock time offset. */
+	void updateTime();
+	std::vector<float> getReceivedOffsets();
 private:
 	void parse(char* data, int length) override;
 
+	/** Update trackedObjects with the contents of the DetectionFrame. */
 	void detectionTracking(const SSL_DetectionFrame& detection);
+	/** Synchronize the time with the timestamps and offsets from the DetectionFrame. */
+	void timeSynchronization(const SSL_DetectionFrame& detection);
 
+	/** Camera id of this socket. */
+	const int camId;
+	/** Default bot height to be used if the bot height is missing from received detection frames. */
 	const float defaultBotHeight;
 
+	/** Increments each time the geometry has changed. */
 	int geometryVersion = 0;
+	/** Ball radius according to the geometry. */
 	float ballRadius = 21.5f;
+	/** Current geometry to be used by other tasks. */
 	SSL_GeometryData geometry;
+	/** Last received geometry, should only be accessed when having geometryMutex locked. */
 	SSL_GeometryData receivedGeometry;
 	std::mutex geometryMutex;
 
+	/** Currently tracked objects. Should only be accessed when having trackedMutex locked. */
 	std::map<int, std::vector<TrackingState>> trackedObjects;
 	std::mutex trackedMutex;
+
+	/** Time offsets measured relative to or reported by other cameras. Should only be accessed when having offsetMutex locked. */
+	std::vector<float> sentOffsets; // local.t_sent - other.time
+	std::vector<float> receivedOffsets; // other.t_sent - local.time
+	std::mutex offsetMutex;
 };
 
+/** Socket handling game controller messages. */
 class GCSocket: public UDPSocket {
 public:
+	/** Bot heights functions as database of known team names -> bot height mappings. */
 	GCSocket(const std::string &ip, uint16_t port, const std::map<std::string, double>& botHeights);
 
+	/** Highest bot height in botHeights. */
 	double maxBotHeight;
+	/** Mean bot height in botHeights, used for teams not present in botHeights. */
 	double defaultBotHeight;
+	/** Current yellow bot height according to the game controller team name. */
 	double yellowBotHeight;
+	/** Current blue bot height according to the game controller team name. */
 	double blueBotHeight;
 
 private:

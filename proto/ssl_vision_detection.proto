@@ -46,6 +46,8 @@ message SSL_DetectionFrame {
   // Camera timestamp in [seconds] as reported by the camera, if supported
   // This is not necessarily a unix timestamp
   optional double             t_capture_camera = 8;
+  // Internal VisionProcessor field for clock synchronization.
+  repeated float              t_offsets        = 9;
   // Identifier of the camera
   required uint32             camera_id        = 4;
   // Detected balls

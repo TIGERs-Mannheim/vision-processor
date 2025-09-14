@@ -120,7 +120,7 @@ Resources::Resources(const YAML::Node& config) {
 
 	YAML::Node network = getOptional(config["network"]);
 	gcSocket = std::make_shared<GCSocket>(network["gc_ip"].as<std::string>("224.5.23.1"), network["gc_port"].as<int>(10003), YAML::LoadFile(config["bot_heights_file"].as<std::string>("robot-heights.yml")).as<std::map<std::string, double>>());
-	socket = std::make_shared<VisionSocket>(network["vision_ip"].as<std::string>("224.5.23.2"), network["vision_port"].as<int>(10006), gcSocket->defaultBotHeight);
+	socket = std::make_shared<VisionSocket>(network["vision_ip"].as<std::string>("224.5.23.2"), network["vision_port"].as<int>(10006), camId, gcSocket->defaultBotHeight);
 	perspective = std::make_shared<Perspective>(socket, camId);
 
 	YAML::Node stream = getOptional(config["stream"]);

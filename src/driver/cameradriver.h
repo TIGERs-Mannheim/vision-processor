@@ -19,6 +19,7 @@
 #include <yaml-cpp/node/node.h>
 #include "opencl.h"
 
+extern double realTimeOffset;
 double getRealTime();
 
 

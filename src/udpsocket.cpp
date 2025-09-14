@@ -16,6 +16,7 @@
 #include "udpsocket.h"
 #include "proto/ssl_vision_wrapper.pb.h"
 #include "proto/ssl_gc_referee_message.pb.h"
+#include "driver/cameradriver.h"
 
 #include <cmath>
 #include <iostream>
@@ -126,12 +127,20 @@ std::map<int, std::vector<TrackingState>> VisionSocket::getTrackedObjects() {
 	return copy;
 }
 
+std::vector<float> VisionSocket::getReceivedOffsets() {
+	offsetMutex.lock();
+	std::vector<float> copy = receivedOffsets;
+	offsetMutex.unlock();
+	return copy;
+}
+
 
 void VisionSocket::parse(char *data, int length) {
 	SSL_WrapperPacket wrapper;
 	wrapper.ParseFromArray(data, length);
 
 	if(wrapper.has_detection()) {
+		timeSynchronization(wrapper.detection());
 		detectionTracking(wrapper.detection());
 	}
 
@@ -235,6 +244,43 @@ void VisionSocket::detectionTracking(const SSL_DetectionFrame &detection) {
 	trackedMutex.lock();
 	trackedObjects[detection.camera_id()] = objects;
 	trackedMutex.unlock();
+}
+
+
+void VisionSocket::updateTime() {
+	offsetMutex.lock();
+
+	double offset = 0.0;
+	int cams = receivedOffsets.size();
+	for (int cam = 0; cam < cams; cam++) {
+		if (cam == camId)
+			continue; // Don't synchronize with yourself
+
+		offset += receivedOffsets[cam] - sentOffsets[cam];
+	}
+
+	offsetMutex.unlock();
+
+	realTimeOffset += offset / (2*cams);
+}
+
+void VisionSocket::timeSynchronization(const SSL_DetectionFrame& detection) {
+	const double localTime = getRealTime();
+	const unsigned int senderId = detection.camera_id();
+
+	offsetMutex.lock();
+
+	while(receivedOffsets.size() <= senderId) {
+		receivedOffsets.push_back(0.0f);
+		sentOffsets.push_back(0.0f);
+	}
+
+	receivedOffsets[senderId] = (float)(detection.t_sent() - localTime);
+
+	if (detection.t_offsets_size() > this->camId)
+		sentOffsets[senderId] = detection.t_offsets(this->camId);
+
+	offsetMutex.unlock();
 }
 
 
