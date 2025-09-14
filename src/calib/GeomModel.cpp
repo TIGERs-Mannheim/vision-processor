@@ -515,7 +515,7 @@ void geometryCalibration(const Resources& r, const CLImage& rgba) {
 	const int halfLineWidth = halfLineWidthEstimation(r, gray);
 	std::cout << "[Geometry calibration] Half line width: " << halfLineWidth << std::endl;
 
-	cv::Mat thresholded(gray.rows, gray.cols, CV_8UC1);
+	cv::Mat thresholded(gray.rows, gray.cols, CV_8UC1, 0.0);
 	thresholdImage(r, gray, halfLineWidth, thresholded);
 	cv::imwrite("img/" + rgba.name + ".pixels.png", thresholded);
 
@@ -528,7 +528,7 @@ void geometryCalibration(const Resources& r, const CLImage& rgba) {
 
 	CVLines lines;
 	for(int i = 0; i < linesMat.rows; i++) {
-		cv::Vec4f line = linesMat(0, i);
+		cv::Vec4f line = linesMat(i, 0);
 		cv::Vec2f a = cv::Vec2f(line[0], line[1]);
 		cv::Vec2f b = cv::Vec2f(line[2], line[3]);
 		if(dist(a, b) >= r.minLineSegmentLength)
