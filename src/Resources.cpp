@@ -82,6 +82,7 @@ Resources::Resources(const YAML::Node& config) {
 	minConfidence = thresholds["min_confidence"].as<float>(0.2f);
 	minCamEdgeDistance = thresholds["min_cam_edge_distance"].as<double>(170.0);
 	resamplingFactor = thresholds["resampling_factor"].as<float>(1.0f);
+	clippingTolerance = thresholds["clipping_tolerance"].as<float>(5.0f);
 
 	YAML::Node tracking = getOptional(config["tracking"]);
 	minTrackingRadius = tracking["min_tracking_radius"].as<double>(20.0);

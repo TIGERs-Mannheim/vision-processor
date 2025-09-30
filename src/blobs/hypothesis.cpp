@@ -40,9 +40,9 @@ float atan2_fast(const float y, const float x) {
 	bool swap = fabsf(x) < fabsf(y);
 	float divisor = (swap ? y : x);
 	if(divisor == 0.0) //TODO look further why this extra check is necessary (why both arguments are 0)
-		return (swap ? x : y);
+		return swap ? x : y;
 
-	float atan_input = (swap ? x : y) / divisor;
+	const float atan_input = (swap ? x : y) / divisor;
 
 	// Approximate atan
 	float res = atan_fma_approximation(atan_input);
@@ -102,7 +102,7 @@ BotHypothesis::BotHypothesis(const Match* a, const Match* b, const Match* c, con
 	calcOffsetScore();
 }
 
-bool BotHypothesis::isClipping(const BotHypothesis& other) const {
+bool BotHypothesis::isClipping(const Resources& r, const BotHypothesis& other) const {
 	Eigen::Vector2f diff = other.pos - pos;
 	float sqDistance = diff.squaredNorm();
 	if(sqDistance >= (2*MIN_ROBOT_RADIUS)*(2*MIN_ROBOT_RADIUS)) //Early rejection for faster calculation (simple circle - circle clipping)
@@ -114,7 +114,8 @@ bool BotHypothesis::isClipping(const BotHypothesis& other) const {
 
 	float minDistance =
 			(abs(selfAngle) < MIN_ROBOT_OPENING_ANGLE ? MIN_ROBOT_FRONT_DISTANCE/cosf(selfAngle) : MIN_ROBOT_RADIUS) +
-			(abs(otherAngle) < MIN_ROBOT_OPENING_ANGLE ? MIN_ROBOT_FRONT_DISTANCE/cosf(otherAngle) : MIN_ROBOT_RADIUS);
+			(abs(otherAngle) < MIN_ROBOT_OPENING_ANGLE ? MIN_ROBOT_FRONT_DISTANCE/cosf(otherAngle) : MIN_ROBOT_RADIUS)
+			- r.clippingTolerance;
 
 	return sqDistance < minDistance*minDistance;
 }
@@ -131,7 +132,7 @@ bool BotHypothesis::isClipping(const Resources& r, const BallHypothesis& ball) c
 	if(abs(angle) >= MIN_ROBOT_OPENING_ANGLE)
 		return true;
 
-	minDistance = (MIN_ROBOT_FRONT_DISTANCE + clippedBallRadius) / cosf(angle);
+	minDistance = (MIN_ROBOT_FRONT_DISTANCE + clippedBallRadius) / cosf(angle) - r.clippingTolerance;
 
 	return sqDistance < minDistance*minDistance;
 }
@@ -230,7 +231,7 @@ TrackedBotHypothesis::TrackedBotHypothesis(const Resources& r, const TrackingSta
 
 	float rotationOffset = remainderf(orientation - trackedPosition.z(), 2.0f * M_PI) / (float)M_PI;
 	offsetScore *= 1 / (1 + ((pos - trackedPosition.head<2>()) / 10.0f).squaredNorm() + rotationOffset*rotationOffset); // (10.0f) 1cm offset -> 0.5 score
-	offsetScore *= std::max((float)blobAmount / 5.f, trackedScore);
+	offsetScore *= (float)blobAmount / 5.f;
 
 	TrackedBotHypothesis::recalcPostColorCalib(r);
 }
@@ -246,7 +247,6 @@ void TrackedBotHypothesis::calcTrackingScore(const Resources& r) {
 		return;
 	}
 
-	float blobScore = 1.0f;
 	for(int i = 0; i < 5; i++) {
 		const Match* const& blob = blobs[i];
 		if(blob == nullptr)
@@ -262,9 +262,9 @@ void TrackedBotHypothesis::calcTrackingScore(const Resources& r) {
 			oppositeColor = ((patterns[botId % 16] >> (4-i)) & 1) ? r.pink : r.green;
 		}
 
-		//blobScore *= 1 - (float)(blob->color - blobColor).norm() / 443.4050f; // sqrt(3 * 256**2)
-		blobScore = std::min(blobScore, ((blob->color - oppositeColor).squaredNorm() - (blob->color - blobColor).squaredNorm() > 0 ? 1.0f : 0.1f));
+		if((blob->color - oppositeColor).squaredNorm() - (blob->color - blobColor).squaredNorm() <= 0) {
+			score = 0.0f;
+			return;
+		}
 	}
-
-	score = std::max(0.f, score * blobScore);
 }

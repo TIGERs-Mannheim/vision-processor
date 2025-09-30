@@ -43,7 +43,7 @@ class BotHypothesis {
 public:
 	BotHypothesis(const Match* a, const Match* b, const Match* c, const Match* d, const Match* e);
 
-	[[nodiscard]] bool isClipping(const BotHypothesis& other) const;
+	[[nodiscard]] bool isClipping(const Resources& r, const BotHypothesis& other) const;
 
 	[[nodiscard]] bool isClipping(const Resources& r, const BallHypothesis& ball) const;
 

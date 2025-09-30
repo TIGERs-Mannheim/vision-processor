@@ -52,6 +52,7 @@ public:
 	int maxBlobs;
 	float minConfidence;
 	float resamplingFactor;
+	float clippingTolerance;
 
 	float referenceForce;
 	float historyForce;

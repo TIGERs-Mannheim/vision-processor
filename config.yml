@@ -87,6 +87,9 @@ thresholds:
   # Min ball camera edge distance in mm
   #min_cam_edge_distance: 170.0
 
+  # Maximum allowed clipping of two objects in mm
+  #clipping_tolerance: 5.0
+
 color:
   # Strength of the reference color during color updates (0.0 - 0.5-history_force/2)
   #reference_force: 0.1

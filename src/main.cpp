@@ -188,13 +188,13 @@ void filterBallsAtCamEdge(const Resources& r, std::list<std::unique_ptr<BallHypo
 	}
 }
 
-void filterClippingBotBotHypotheses(std::list<std::unique_ptr<BotHypothesis>>& bots) {
+void filterClippingBotBotHypotheses(const Resources& r, std::list<std::unique_ptr<BotHypothesis>>& bots) {
 	for (auto it1 = bots.cbegin(); it1 != bots.cend(); ) {
 		const auto& bot1 = *it1;
 		bool remove = false;
 		for (auto it2 = bots.cbegin(); it2 != bots.cend(); it2++) {
 			const auto& bot2 = *it1;
-			if (bot2->score > bot1->score && bot1->isClipping(*bot2)) {
+			if (bot2->score > bot1->score && bot1->isClipping(r, *bot2)) {
 				remove = true;
 				break;
 			}
@@ -207,7 +207,7 @@ void filterClippingBotBotHypotheses(std::list<std::unique_ptr<BotHypothesis>>& b
 
 		for (auto it2 = bots.cbegin(); it2 != bots.cend(); ) {
 			const auto& bot2 = *it2;
-			if (bot2->score <= bot1->score && bot1->isClipping(*bot2) && it1 != it2) {
+			if (bot2->score <= bot1->score && bot1->isClipping(r, *bot2) && it1 != it2) {
 				it2 = bots.erase(it2);
 			} else {
 				it2++;
@@ -382,7 +382,7 @@ int main(int argc, char* argv[]) {
 				generateRadiusSearchTrackedBotHypotheses(r, botHypotheses, matches, blobs, startTime);
 				generateAngleSortedBotHypotheses(r, botHypotheses, matches, blobs);
 				filterHypothesesScore(botHypotheses, r.minConfidence);
-				filterClippingBotBotHypotheses(botHypotheses);
+				filterClippingBotBotHypotheses(r, botHypotheses);
 				generateNonclippingBallHypotheses(r, botHypotheses, matches, ballHypotheses);
 			}
 
