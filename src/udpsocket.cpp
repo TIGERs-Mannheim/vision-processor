@@ -251,7 +251,7 @@ void VisionSocket::updateTime() {
 	offsetMutex.lock();
 
 	double offset = 0.0;
-	int cams = (int)receivedOffsets.size();
+	const int cams = (int)receivedOffsets.size();
 	for (int cam = 0; cam < cams; cam++) {
 		if (cam == camId)
 			continue; // Don't synchronize with yourself
@@ -260,6 +260,8 @@ void VisionSocket::updateTime() {
 	}
 
 	offsetMutex.unlock();
+	if (cams == 0)
+		return;
 
 	realTimeOffset += offset / (2*cams);
 }
