@@ -61,7 +61,7 @@ UDPSocket::UDPSocket(const std::string& ip, uint16_t port) {
 		std::cerr << "Could not bind to multicast socket" << std::endl;
 	}
 
-	struct ip_mreq mreq;
+	struct ip_mreq mreq = {};
 	inet_pton(AF_INET, ip.c_str(), &mreq.imr_multiaddr);
 	inet_pton(AF_INET, "0.0.0.0", &mreq.imr_interface);
 	if (setsockopt(socket_, IPPROTO_IP, IP_ADD_MEMBERSHIP, (char*) &mreq, sizeof(mreq)) < 0) {
@@ -120,9 +120,9 @@ void VisionSocket::geometryCheck() {
 	geometryMutex.unlock();
 }
 
-std::map<int, std::vector<TrackingState>> VisionSocket::getTrackedObjects() {
+std::map<unsigned int, std::vector<TrackingState>> VisionSocket::getTrackedObjects() {
 	trackedMutex.lock();
-	std::map<int, std::vector<TrackingState>> copy = trackedObjects;
+	std::map<unsigned int, std::vector<TrackingState>> copy = trackedObjects;
 	trackedMutex.unlock();
 	return copy;
 }
@@ -153,7 +153,7 @@ void VisionSocket::parse(char *data, int length) {
 	}
 }
 
-static inline void trackBots(const double timestamp, const float defaultBotHeight, const google::protobuf::RepeatedPtrField<SSL_DetectionRobot>& bots, const std::vector<TrackingState>& previous, std::vector<TrackingState>& objects, int idOffset) {
+static void trackBots(const double timestamp, const float defaultBotHeight, const google::protobuf::RepeatedPtrField<SSL_DetectionRobot>& bots, const std::vector<TrackingState>& previous, std::vector<TrackingState>& objects, int idOffset) {
 	for (const SSL_DetectionRobot& bot : bots) {
 		float height = bot.has_height() ? bot.height() : defaultBotHeight;
 
@@ -178,15 +178,15 @@ static inline void trackBots(const double timestamp, const float defaultBotHeigh
 				(int)bot.robot_id() + idOffset, timestamp,
 				bot.x(), bot.y(), height, bot.orientation(),
 				0.0f, 0.0f, 0.0f, 0.0f,
-				bot.confidence()
+				bot.confidence(), 1
 			});
 		} else {
-			float timeDelta = timestamp - nextOldBot->timestamp;
+			auto timeDelta = (float)(timestamp - nextOldBot->timestamp);
 			objects.push_back({
 				nextOldBot->id, timestamp,
 				bot.x(), bot.y(), height, bot.orientation(),
 				(bot.x() - nextOldBot->x) / timeDelta, (bot.y() - nextOldBot->y) / timeDelta, 0.0f, (bot.orientation() - nextOldBot->w) / timeDelta,
-				bot.confidence()
+				bot.confidence(), nextOldBot->age + 1
 			});
 		}
 	}
@@ -225,15 +225,15 @@ void VisionSocket::detectionTracking(const SSL_DetectionFrame &detection) {
 				-1, timestamp,
 				ball.x(), ball.y(), z, 0.0f,
 				0.0f, 0.0f, 0.0f, 0.0f,
-				ball.confidence()
+				ball.confidence(), 1
 			});
 		} else {
-			float timeDelta = timestamp - nextOldBall->timestamp;
+			auto timeDelta = (float)(timestamp - nextOldBall->timestamp);
 			objects.push_back({
 				-1, timestamp,
 				ball.x(), ball.y(), z, 0.0f,
 				(ball.x() - nextOldBall->x) / timeDelta, (ball.y() - nextOldBall->y) / timeDelta, (z - nextOldBall->z) / timeDelta, 0.0f,
-				ball.confidence()
+				ball.confidence(), nextOldBall->age + 1
 			});
 		}
 	}
@@ -251,7 +251,7 @@ void VisionSocket::updateTime() {
 	offsetMutex.lock();
 
 	double offset = 0.0;
-	int cams = receivedOffsets.size();
+	int cams = (int)receivedOffsets.size();
 	for (int cam = 0; cam < cams; cam++) {
 		if (cam == camId)
 			continue; // Don't synchronize with yourself

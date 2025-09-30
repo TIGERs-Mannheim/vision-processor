@@ -36,7 +36,7 @@
 class UDPSocket {
 public:
 	UDPSocket(const std::string& ip, uint16_t port);
-	~UDPSocket();
+	virtual ~UDPSocket();
 
 	void send(const google::protobuf::Message& msg);
 
@@ -46,7 +46,7 @@ private:
 
 	bool closing = false;
 	int socket_;
-	struct sockaddr addr_;
+	struct sockaddr addr_ = {};
 
 	std::thread receiver;
 };
@@ -59,6 +59,7 @@ struct TrackingState {
 	float x, y, z, w;
 	float vx, vy, vz, vw;
 	float confidence;
+	int age;
 };
 
 
@@ -72,7 +73,7 @@ public:
 	int getGeometryVersion() const { return geometryVersion; }
 	SSL_GeometryData& getGeometry() { return geometry; }
 
-	std::map<int, std::vector<TrackingState>> getTrackedObjects();
+	std::map<unsigned int, std::vector<TrackingState>> getTrackedObjects();
 
 	/** Update the clock time offset. */
 	void updateTime();
@@ -101,7 +102,7 @@ private:
 	std::mutex geometryMutex;
 
 	/** Currently tracked objects. Should only be accessed when having trackedMutex locked. */
-	std::map<int, std::vector<TrackingState>> trackedObjects;
+	std::map<unsigned int, std::vector<TrackingState>> trackedObjects;
 	std::mutex trackedMutex;
 
 	/** Time offsets measured relative to or reported by other cameras. Should only be accessed when having offsetMutex locked. */
