@@ -172,6 +172,7 @@ public:
 	//Only use these constructors if not possible otherwise due to necessary copy (because of potential alignment mismatch for zero-copy support)
 	RawImage(const PixelFormat* format, int width, int height, unsigned char* data): CLArray(data, width * height * format->pixelSize()), format(format), width(width), height(height) {}
 	RawImage(const PixelFormat* format, int width, int height, double timestamp, unsigned char* data): CLArray(data, width * height * format->pixelSize()), format(format), width(width), height(height), timestamp(timestamp) {}
+	RawImage(const PixelFormat* format, int width, int height, std::string name, double timestamp, unsigned char* data): CLArray(data, width * height * format->pixelSize()), format(format), width(width), height(height), timestamp(timestamp), name(std::move(name)) {}
 
 	virtual ~RawImage() = default;
 
