@@ -105,7 +105,7 @@ Resources::Resources(const YAML::Node& config) {
 	fieldReference = color["field"].as<Eigen::Vector3i>(Eigen::Vector3i{128, 128, 128});
 	yellowReference = color["yellow"].as<Eigen::Vector3i>(Eigen::Vector3i{128, 64, 128});
 	blueReference = color["blue"].as<Eigen::Vector3i>(Eigen::Vector3i{128, 192, 64});
-	greenReference = color["green"].as<Eigen::Vector3i>(Eigen::Vector3i{128, 64, 192});
+	greenReference = color["green"].as<Eigen::Vector3i>(Eigen::Vector3i{128, 64, 64});
 	pinkReference = color["pink"].as<Eigen::Vector3i>(Eigen::Vector3i{128, 192, 192});
 	orange = orangeReference;
 	field = fieldReference;
