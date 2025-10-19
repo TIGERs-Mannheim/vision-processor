@@ -75,7 +75,7 @@ kernel void matches(read_only image2d_t img, read_only image2d_t circ, global Ma
 	//https://en.wikipedia.org/wiki/Summed-area_table
 	float4 stddev = native_sqrt((convert_float4(s2) - convert_float4(s1)*convert_float4(s1)/n) / n);
 
-	float score = circScore / (stddev.x + stddev.y + stddev.z);
+	float score = circScore / (stddev.y + stddev.z);
 	if(score < minScore) {
 		atomic_inc(counter+1);
 		return;

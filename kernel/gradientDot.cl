@@ -26,6 +26,6 @@ kernel void gradient_dotproduct(read_only image2d_t in, write_only image2d_t out
 	float4 gy = convert_float4(read_imageui(in, sampler, (int2)(pos.x, pos.y+offset))) - convert_float4(read_imageui(in, sampler, (int2)(pos.x, pos.y-offset)));
 
 	gx *= gy;
-	write_imagef(out, pos, gx.x + gx.y + gx.z);
+	write_imagef(out, pos, gx.y + gx.z);
 }
 

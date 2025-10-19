@@ -53,7 +53,7 @@ kernel void resampling(read_only image2d_t channel0, read_only image2d_t channel
 	float2 pos = field2image(model, (float3)(get_global_id(0)*fieldScale + fieldOffsetX, get_global_id(1)*fieldScale + fieldOffsetY, maxRobotHeight));
 
 #ifdef BGR
-	uint4 color = (uint4)(
+	int4 color = (int4)(
 			read_imageui(channel2, sampler, pos).x,
 			read_imageui(channel1, sampler, pos).x,
 			read_imageui(channel0, sampler, pos).x,
@@ -62,7 +62,7 @@ kernel void resampling(read_only image2d_t channel0, read_only image2d_t channel
 #endif
 
 #ifdef RGGB
-	uint4 color = (uint4)(
+	int4 color = (int4)(
 			read_imageui(channel0, sampler, (float2)(pos.x + 0.25f, pos.y + 0.25f)).x,
 			read_imageui(channel1, sampler, (float2)(pos.x - 0.25f, pos.y + 0.25f)).x/2 + read_imageui(channel2, sampler, (float2)(pos.x + 0.25f, pos.y - 0.25f)).x/2,
 			read_imageui(channel3, sampler, (float2)(pos.x - 0.25f, pos.y - 0.25f)).x,
@@ -71,7 +71,7 @@ kernel void resampling(read_only image2d_t channel0, read_only image2d_t channel
 #endif
 
 #ifdef GRBG
-	uint4 color = (uint4)(
+	int4 color = (int4)(
 			read_imageui(channel1, sampler, (float2)(pos.x - 0.25f, pos.y + 0.25f)).x,
 			read_imageui(channel0, sampler, (float2)(pos.x + 0.25f, pos.y + 0.25f)).x/2 + read_imageui(channel3, sampler, (float2)(pos.x - 0.25f, pos.y - 0.25f)).x/2,
 			read_imageui(channel2, sampler, (float2)(pos.x + 0.25f, pos.y - 0.25f)).x,
@@ -79,22 +79,11 @@ kernel void resampling(read_only image2d_t channel0, read_only image2d_t channel
 	);
 #endif
 
-	// RGB
-	//write_imageui(out, (int2)(get_global_id(0), get_global_id(1)), color);
-
-	// dRGB
+	// YUV
 	write_imageui(out, (int2)(get_global_id(0), get_global_id(1)), (uint4)(
-			(2*color.r - color.g - color.b + 510) / 4,
-			(2*color.g - color.b - color.r + 510) / 4,
-			(2*color.b - color.r - color.g + 510) / 4,
+			convert_uchar_sat(( 66*color.r + 129*color.g +  25*color.b) / 256 + 16),
+			convert_uchar_sat((-38*color.r + -74*color.g + 112*color.b) / 256 + 128),
+			convert_uchar_sat((112*color.r + -94*color.g + -18*color.b) / 256 + 128),
 			255
 	));
-
-	// YUV
-	/*write_imageui(out, (int2)(get_global_id(0), get_global_id(1)), (uint4)(
-			128,
-			convert_uchar_sat((-38*(int)color.r + -74*(int)color.g + 112*(int)color.b) / 256 + 128),
-			convert_uchar_sat((112*(int)color.r + -94*(int)color.g + -18*(int)color.b) / 256 + 128),
-			255
-	));*/
 }
