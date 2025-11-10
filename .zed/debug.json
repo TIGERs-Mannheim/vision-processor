@@ -1,0 +1,22 @@
+[
+	{
+		"label": "vision_processor (NOCAMS)",
+		"build": {
+			"command": "cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo -DWITH_SPINNAKER=OFF -DWITH_MVIMPACT=OFF -B build && cmake --build build -j -t vision_processor",
+			"hide": "on_success"
+		},
+		"program": "build/vision_processor",
+		"request": "launch",
+		"adapter": "GDB"
+	},
+	{
+		"label": "vision_processor (WITHCAMS)",
+		"build": {
+			"command": "cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo -B build-withcams && cmake --build build-withcams -j -t vision_processor",
+			"hide": "on_success"
+		},
+		"program": "build-withcams/vision_processor",
+		"request": "launch",
+		"adapter": "GDB"
+	}
+]
