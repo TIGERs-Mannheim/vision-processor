@@ -148,6 +148,9 @@ const PixelFormat SpinnakerDriver::format() {
 }
 
 double SpinnakerDriver::expectedFrametime() {
+	if(!IsAvailable(pCam->AcquisitionResultingFrameRate))
+		return CameraDriver::expectedFrametime();
+
 	return 1 / pCam->AcquisitionResultingFrameRate.GetValue();
 }
 

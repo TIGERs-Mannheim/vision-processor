@@ -30,6 +30,20 @@ double CameraDriver::getTime() {
 	return getRealTime();
 }
 
+std::shared_ptr<RawImage> CameraDriver::nextImage() {
+	std::shared_ptr<RawImage> image = readImage();
+
+	double frameTime = getTime();
+	lastFrameDelta = frameTime - lastFrameTimestamp;
+	lastFrameTimestamp = frameTime;
+
+	return image;
+}
+
+double CameraDriver::expectedFrametime() {
+	return lastFrameDelta;
+}
+
 
 CameraConfig::CameraConfig(const YAML::Node &cam) {
 	driverType = cam["driver"].as<std::string>("SPINNAKER");

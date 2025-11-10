@@ -136,7 +136,7 @@ int main(int argc, char* argv[]) {
 
 	while(true) {
 		double startTime = getRealTime();
-		std::shared_ptr<RawImage> img = r.camera->readImage();
+		std::shared_ptr<RawImage> img = r.camera->nextImage();
 		if(img == nullptr)
 			break;
 

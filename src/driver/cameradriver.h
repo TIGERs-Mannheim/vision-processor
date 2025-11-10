@@ -36,14 +36,24 @@ class CameraDriver {
 public:
 	virtual ~CameraDriver() = default;
 
-	virtual std::shared_ptr<RawImage> readImage() = 0;
+	/** Method to await and get the next image. Updates lastFrame* times. */
+	std::shared_ptr<RawImage> nextImage();
 
 	virtual const PixelFormat format() = 0;
 
-	virtual double expectedFrametime() = 0;
+	virtual double expectedFrametime();
 
 	// Bound to the driver for reproducibility during testing with files.
 	virtual double getTime();
+
+	/** Contains the timestamp of the last image returned by nextImage. */
+	double lastFrameTimestamp = getTime();
+
+protected:
+	virtual std::shared_ptr<RawImage> readImage() = 0;
+
+private:
+	double lastFrameDelta = 1 / 30.0;
 };
 
 

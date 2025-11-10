@@ -54,7 +54,7 @@ static void geometryBenchmark(Resources& r, const uint32_t frameId) {
 int main(int argc, char* argv[]) {
 	Resources r(YAML::LoadFile(argc > 1 ? argv[1] : "config.yml"));
 
-	std::shared_ptr<RawImage> img = r.camera->readImage();
+	std::shared_ptr<RawImage> img = r.camera->nextImage();
 	r.perspective->geometryCheck(img->width, img->height, r.gcSocket->maxBotHeight, r.resamplingFactor);
 	std::shared_ptr<CLImage> channels[4];
 	r.raw2quad(*img, channels);

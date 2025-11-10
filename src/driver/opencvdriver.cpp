@@ -72,8 +72,8 @@ const PixelFormat OpenCVDriver::format() {
 double OpenCVDriver::expectedFrametime() {
 	double fps = capture.get(cv::CAP_PROP_FPS);
 
-	if(fps == 0.0) // Unavailable for cameras, estimate 30 FPS
-		fps = 30.0;
+	if(fps == 0.0) // Unavailable for cameras
+		return CameraDriver::expectedFrametime();
 
 	return 1 / fps;
 }

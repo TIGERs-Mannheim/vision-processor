@@ -317,11 +317,10 @@ int main(int argc, char* argv[]) {
 	signal(SIGINT, sig_stop);
 	while(noSigterm) {
 		frameId++;
-		std::shared_ptr<RawImage> img = r.camera->readImage();
+		std::shared_ptr<RawImage> img = r.camera->nextImage();
 		if(img == nullptr)
 			break;
 
-		double startTime = r.camera->getTime();
 		double realStartTime = getRealTime(); // Just for realtime performance measurements
 
 		r.socket->geometryCheck();
@@ -379,7 +378,7 @@ int main(int argc, char* argv[]) {
 				for(unsigned int i = 1; i < matches.size(); i++)
 					blobs.insert(&matches[i]);
 
-				generateRadiusSearchTrackedBotHypotheses(r, botHypotheses, matches, blobs, startTime);
+				generateRadiusSearchTrackedBotHypotheses(r, botHypotheses, matches, blobs, r.camera->lastFrameTimestamp);
 				generateAngleSortedBotHypotheses(r, botHypotheses, matches, blobs);
 				filterHypothesesScore(botHypotheses, r.minConfidence);
 				filterClippingBotBotHypotheses(r, botHypotheses);
@@ -399,7 +398,7 @@ int main(int argc, char* argv[]) {
 			SSL_WrapperPacket wrapper;
 			SSL_DetectionFrame* detection = wrapper.mutable_detection();
 			detection->set_frame_number(frameId);
-			detection->set_t_capture(startTime);
+			detection->set_t_capture(r.camera->lastFrameTimestamp);
 			if(img->timestamp != 0)
 				detection->set_t_capture_camera(img->timestamp);
 			detection->set_camera_id(r.camId);
@@ -415,7 +414,7 @@ int main(int argc, char* argv[]) {
 			double processingTime = getRealTime() - realStartTime;
 
 #if BENCHMARK
-			detection->set_t_sent(startTime + processingTime);
+			detection->set_t_sent(r.camera->lastFrameTimestamp + processingTime);
 			std::cout << "[main] time " << processingTime * 1000.0 << " ms " << matches.size() << " blobs " << detection->balls().size() << " balls " << (detection->robots_yellow_size() + detection->robots_blue_size()) << " bots" << std::endl;
 #else
 			detection->set_t_sent(r.camera->getTime());
@@ -429,7 +428,7 @@ int main(int argc, char* argv[]) {
 			if(r.rawFeed) {
 				r.streamQuad(channels);
 			} else {
-				switch(((long)(startTime/20.0) % 4)) {
+				switch(((long)(r.camera->lastFrameTimestamp/20.0) % 4)) {
 					case 0:
 						r.streamQuad(channels);
 						break;
