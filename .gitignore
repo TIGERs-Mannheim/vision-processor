@@ -27,3 +27,8 @@ CMakeCache.txt
 # CLion IDE
 /.idea
 /cmake-build-*
+
+# Zed IDE
+/.cache
+/build*
+/.zed

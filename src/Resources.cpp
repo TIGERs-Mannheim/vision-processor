@@ -149,12 +149,12 @@ void Resources::raw2quad(const RawImage& img, std::shared_ptr<CLImage>* channels
 	for(int i = 0; i < 4; i++)
 		channels[i] = openCl->acquire(&PixelFormat::U8, img.width, img.height, img.name);
 
-	OpenCL::await(raw2quadKernel, cl::EnqueueArgs(cl::NDRange(img.width, img.height)), img.buffer, channels[0]->image, channels[1]->image, channels[2]->image, channels[3]->image);
+	openCl->await(raw2quadKernel, cl::EnqueueArgs(cl::NDRange(img.width, img.height)), img.buffer, channels[0]->image, channels[1]->image, channels[2]->image, channels[3]->image);
 }
 
 std::shared_ptr<CLImage> Resources::quad2rgba(std::shared_ptr<CLImage>* channels) {
 	std::shared_ptr<CLImage> rgba = openCl->acquire(&PixelFormat::RGBA8, channels[0]->width, channels[0]->height, channels[0]->name);
-	OpenCL::await(quad2rgbaKernel, cl::EnqueueArgs(cl::NDRange(channels[0]->width, channels[0]->height)), channels[0]->image, channels[1]->image, channels[2]->image, channels[3]->image, rgba->image);
+	openCl->await(quad2rgbaKernel, cl::EnqueueArgs(cl::NDRange(channels[0]->width, channels[0]->height)), channels[0]->image, channels[1]->image, channels[2]->image, channels[3]->image, rgba->image);
 	return rgba;
 }
 
@@ -166,16 +166,16 @@ void Resources::rgba2blobCenter(const std::shared_ptr<CLImage>* channels, std::s
 	std::shared_ptr<CLImage> gradDotSat = openCl->acquire(&PixelFormat::F32, perspective->reprojectedFieldSize[0], perspective->reprojectedFieldSize[1], channels[0]->name);
 	blobCenter = openCl->acquire(&PixelFormat::F32, perspective->reprojectedFieldSize[0], perspective->reprojectedFieldSize[1], channels[0]->name);
 
-	cl::Event e1 = OpenCL::run(resampling, cl::EnqueueArgs(visibleFieldRange), channels[0]->image, channels[1]->image, channels[2]->image, channels[3]->image, flat->image, perspective->getCLCameraModel(), (float)gcSocket->maxBotHeight, perspective->fieldScale, perspective->visibleFieldExtent[0], perspective->visibleFieldExtent[2]);
-	cl::Event e2 = OpenCL::run(gradientDot, cl::EnqueueArgs(e1, visibleFieldRange), flat->image, gradDot->image, (int)ceilf(perspective->maxBlobRadius / perspective->fieldScale) / 3);
-	cl::Event e3 = OpenCL::run(satHorizontal, cl::EnqueueArgs(e2, cl::NDRange(perspective->reprojectedFieldSize[1])), gradDot->image, gradDotHor->image);
-	cl::Event e4 = OpenCL::run(satVertical, cl::EnqueueArgs(e3, cl::NDRange(perspective->reprojectedFieldSize[0])), gradDotHor->image, gradDotSat->image);
-	OpenCL::await(satBlobCenter, cl::EnqueueArgs(e4, visibleFieldRange), gradDotSat->image, blobCenter->image, (int)ceilf(perspective->minBlobRadius / perspective->fieldScale));
+	cl::Event e1 = openCl->run(resampling, cl::EnqueueArgs(visibleFieldRange), channels[0]->image, channels[1]->image, channels[2]->image, channels[3]->image, flat->image, perspective->getCLCameraModel(), (float)gcSocket->maxBotHeight, perspective->fieldScale, perspective->visibleFieldExtent[0], perspective->visibleFieldExtent[2]);
+	cl::Event e2 = openCl->run(gradientDot, cl::EnqueueArgs(e1, visibleFieldRange), flat->image, gradDot->image, (int)ceilf(perspective->maxBlobRadius / perspective->fieldScale) / 3);
+	cl::Event e3 = openCl->run(satHorizontal, cl::EnqueueArgs(e2, cl::NDRange(perspective->reprojectedFieldSize[1])), gradDot->image, gradDotHor->image);
+	cl::Event e4 = openCl->run(satVertical, cl::EnqueueArgs(e3, cl::NDRange(perspective->reprojectedFieldSize[0])), gradDotHor->image, gradDotSat->image);
+	openCl->await(satBlobCenter, cl::EnqueueArgs(e4, visibleFieldRange), gradDotSat->image, blobCenter->image, (int)ceilf(perspective->minBlobRadius / perspective->fieldScale));
 }
 
 void Resources::streamQuad(std::shared_ptr<CLImage>* channels) {
 	std::shared_ptr<RawImage> nv12 = openCl->acquireNV12(channels[0]->width, channels[0]->height);
-	OpenCL::await(quad2nv12, cl::EnqueueArgs(cl::NDRange(channels[0]->width, channels[0]->height)), channels[0]->image, channels[1]->image, channels[2]->image, channels[3]->image, nv12->buffer);
+	openCl->await(quad2nv12, cl::EnqueueArgs(cl::NDRange(channels[0]->width, channels[0]->height)), channels[0]->image, channels[1]->image, channels[2]->image, channels[3]->image, nv12->buffer);
 	rtpStreamer->sendFrame(nv12);
 }
 
@@ -191,6 +191,6 @@ void Resources::streamImage(CLImage &img) {
 	}
 
 	std::shared_ptr<RawImage> nv12 = openCl->acquireNV12(img.width, img.height);
-	OpenCL::await(kernel, cl::EnqueueArgs(cl::NDRange(img.width, img.height)), img.image, nv12->buffer);
+	openCl->await(kernel, cl::EnqueueArgs(cl::NDRange(img.width, img.height)), img.image, nv12->buffer);
 	rtpStreamer->sendFrame(nv12);
 }

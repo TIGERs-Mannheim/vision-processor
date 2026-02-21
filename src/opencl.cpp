@@ -48,7 +48,7 @@ OpenCL::OpenCL() {
 
 	context = cl::Context(device);
 	cl::Context::setDefault(context);
-	queue = cl::CommandQueue(context, device);
+	queue = cl::CommandQueue(context, device, CL_QUEUE_PROFILING_ENABLE);
 	cl::CommandQueue::setDefault(queue);
 }
 
@@ -96,6 +96,19 @@ void OpenCL::wait(const cl::Event& event) {
 		std::cerr << "[OpenCL] Error during kernel execution: " << error << std::endl;
 		exit(1);
 	}
+}
+
+void OpenCL::printRuntimes() {
+	std::cout << std::fixed;
+	std::cout.precision(2);
+	for(const cl::Event& event : events) {
+		std::cout << (event.getProfilingInfo<CL_PROFILING_COMMAND_END>() - event.getProfilingInfo<CL_PROFILING_COMMAND_START>()) * 1e-6f << "ms ";
+	}
+	std::cout << std::endl;
+}
+
+void OpenCL::clearEvents() {
+	events.clear();
 }
 
 //Pool design adapted from Jonathan Mee https://stackoverflow.com/a/27828584 CC BY-SA 3.0

@@ -74,7 +74,7 @@ public:
 	cl::Kernel compile(const char* code, const std::string& options = "");
 
 	template<typename... Ts>
-	static cl::Event run(cl::Kernel kernel, const cl::EnqueueArgs& args, Ts... ts) {
+	cl::Event run(cl::Kernel kernel, const cl::EnqueueArgs& args, Ts... ts) {
 		cl::KernelFunctor<Ts...> functor(std::move(kernel));
 		cl_int error;
 		cl::Event event = functor(args, std::forward<Ts>(ts)..., error);
@@ -82,15 +82,19 @@ public:
 			std::cerr << "[OpenCL] Enqueue kernel error: " << error << std::endl;
 			exit(1);
 		}
+		events.push_back(event);
 		return event;
 	}
 
 	template<typename... Ts>
-	static void await(cl::Kernel kernel, const cl::EnqueueArgs& args, Ts... ts) {
+	void await(cl::Kernel kernel, const cl::EnqueueArgs& args, Ts... ts) {
 		wait(run(kernel, args, std::forward<Ts>(ts)...));
 	}
 
 	static void wait(const cl::Event& event);
+
+	void printRuntimes();
+	void clearEvents();
 
 	std::shared_ptr<CLImage> acquire(const PixelFormat* format, int width, int height, const std::string& name);
 
@@ -105,6 +109,8 @@ private:
 
 	std::map<const PixelFormat*, std::vector<std::shared_ptr<CLImage>>> pool;
 	std::vector<std::shared_ptr<RawImage>> nv12pool;
+
+	std::vector<cl::Event> events;
 };
 
 template<typename T>

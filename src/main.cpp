@@ -341,7 +341,7 @@ int main(int argc, char* argv[]) {
 				counterMap[1] = 0;
 				counterMap[2] = 0;
 			}
-			OpenCL::await(blobList, cl::EnqueueArgs(cl::NDRange(r.perspective->reprojectedFieldSize[0], r.perspective->reprojectedFieldSize[1])), flat->image, blobCenter->image, matchArray.buffer, counter.buffer, (float)r.minCircularity, (float)0.0f, (int)floorf(r.perspective->minBlobRadius / r.perspective->fieldScale), r.maxBlobs);
+			r.openCl->await(blobList, cl::EnqueueArgs(cl::NDRange(r.perspective->reprojectedFieldSize[0], r.perspective->reprojectedFieldSize[1])), flat->image, blobCenter->image, matchArray.buffer, counter.buffer, (float)r.minCircularity, (float)0.0f, (int)floorf(r.perspective->minBlobRadius / r.perspective->fieldScale), r.maxBlobs);
 
 			if(r.debugImages && frameId == 1) {
 				flat->save(".flat." + std::to_string(frameId) + ".png");
@@ -417,11 +417,13 @@ int main(int argc, char* argv[]) {
 #if BENCHMARK
 			detection->set_t_sent(startTime + processingTime);
 			std::cout << "[main] time " << processingTime * 1000.0 << " ms " << matches.size() << " blobs " << detection->balls().size() << " balls " << (detection->robots_yellow_size() + detection->robots_blue_size()) << " bots" << std::endl;
+			r.openCl->printRuntimes();
 #else
 			detection->set_t_sent(r.camera->getTime());
 #endif
 			r.socket->send(wrapper);
 			r.socket->updateTime();
+			r.openCl->clearEvents();
 
 			if(processingTime > r.camera->expectedFrametime())
 				std::cout << "[main] frame time overrun: " << processingTime * 1000.0 << " ms " << matches.size() << " blobs " << detection->balls().size() << " balls " << (detection->robots_yellow_size() + detection->robots_blue_size()) << " bots" << std::endl;
