@@ -120,7 +120,8 @@ SpinnakerDriver::SpinnakerDriver(const CameraConfig& config) {
 	int width = pCam->WidthMax.GetValue();
 	int height = pCam->HeightMax.GetValue();
 	for(int i = 0; i < pCam->TLStream.StreamBufferCountManual.GetMin(); i++) {
-		std::shared_ptr<RawImage> buffer = std::make_shared<RawImage>(&PixelFormat::RGGB8, width/2, height/2, "spinnaker");
+		// Spinnaker buffer sizes need to be 1024 byte aligned
+		std::shared_ptr<RawImage> buffer = std::make_shared<RawImage>(CLArray((width * height + 1023)/1024 * 1024), &PixelFormat::RGGB8, width/2, height/2, "spinnaker");
 		buffers[buffer] = std::make_unique<CLMap<uint8_t>>(buffer->write<uint8_t>());
 	}
 

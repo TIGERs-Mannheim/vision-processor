@@ -172,6 +172,7 @@ class RawImage : public CLArray {
 public:
 	RawImage(const RawImage& other) = default;
 	RawImage(const PixelFormat* format, int width, int height): CLArray(width * height * format->pixelSize()), format(format), width(width), height(height), name() {}
+	RawImage(CLArray array, const PixelFormat* format, int width, int height, std::string name): CLArray(std::move(array)), format(format), width(width), height(height), name(std::move(name)) {}
 	RawImage(const PixelFormat* format, int width, int height, std::string name): CLArray(width * height * format->pixelSize()), format(format), width(width), height(height), name(std::move(name)) {}
 	RawImage(const PixelFormat* format, int width, int height, double timestamp): CLArray(width * height * format->pixelSize()), format(format), width(width), height(height), timestamp(timestamp), name() {}
 
