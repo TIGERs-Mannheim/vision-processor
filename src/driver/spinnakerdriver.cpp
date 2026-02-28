@@ -16,8 +16,18 @@
 #ifdef SPINNAKER
 
 #include "spinnakerdriver.h"
+#include <cstdlib> 
+#include <algorithm>
 
 #define CATCH_SPINNAKER(f) try { f; } catch (Spinnaker::Exception &e) { std::cerr << "[Spinnaker] Could not set parameter: " << e.GetFullErrorMessage() << std::endl; }
+
+constexpr int    kMinBufferCount = 3;      // Minimum buffer count required for NewestOnly mode
+constexpr size_t kUsb3PacketSize = 1024;   // USB3 packet size alignment requirement
+constexpr size_t kPageSize       = 4096;   // Page size alignment requirement for Meteor Lake
+
+static size_t alignUp(size_t size, size_t alignment) {
+	return ((size + alignment - 1) / alignment) * alignment;
+}
 
 
 class SpinnakerImage : public RawImage {
@@ -114,22 +124,39 @@ SpinnakerDriver::SpinnakerDriver(const CameraConfig& config) {
 	}
 
 	pCam->TLStream.StreamBufferHandlingMode.SetValue(Spinnaker::StreamBufferHandlingMode_NewestOnly);
-	pCam->TLStream.StreamBufferCountManual.SetValue(pCam->TLStream.StreamBufferCountManual.GetMin());
+
+	// NewestOnly mode requires at least kMinBufferCount buffers
+	int requiredBuffers = std::max(kMinBufferCount, (int)pCam->TLStream.StreamBufferCountManual.GetMin());
+	pCam->TLStream.StreamBufferCountManual.SetValue(requiredBuffers);
 
 	// Provide image buffers to achieve faster mapping with OpenCL
-	int width = pCam->WidthMax.GetValue();
-	int height = pCam->HeightMax.GetValue();
-	for(int i = 0; i < pCam->TLStream.StreamBufferCountManual.GetMin(); i++) {
-		std::shared_ptr<RawImage> buffer = std::make_shared<RawImage>(&PixelFormat::RGGB8, width/2, height/2, "spinnaker");
-		buffers[buffer] = std::make_unique<CLMap<uint8_t>>(buffer->write<uint8_t>());
-	}
+	int width  = (int)pCam->Width.GetValue();
+	int height = (int)pCam->Height.GetValue();
+	size_t rawSize = (size_t)width * height;
+
+	// USB3 packet size alignment is required for zero copy
+	// https://www.intel.com/content/dam/develop/external/us/en/documents/opencl-zero-copy-in-opencl-1-2.pdf
+	finalBufferSize_ = alignUp(alignUp(rawSize, kUsb3PacketSize), kPageSize);
 
 	std::vector<void*> bufferPtrs;
-	for (auto& item: buffers)
-		bufferPtrs.push_back(**item.second);
 
+	for(int i = 0; i < requiredBuffers; i++) {
+		void* alignedPtr = nullptr;
+		if (posix_memalign(&alignedPtr, kPageSize, finalBufferSize_) != 0) {
+			throw std::runtime_error("[Spinnaker] posix_memalign failed");
+		}
+		
+		std::shared_ptr<RawImage> buffer = std::make_shared<RawImage>(&PixelFormat::RGGB8, width/2, height/2, (unsigned char*)alignedPtr);
+		
+		// Create OpenCL mapping
+		buffers[buffer] = std::make_unique<CLMap<uint8_t>>(buffer->write<uint8_t>());
+		
+		bufferPtrs.push_back(alignedPtr);
+	}
+
+	// Register user-owned buffers with the camera
 	pCam->SetBufferOwnership(Spinnaker::SPINNAKER_BUFFER_OWNERSHIP_USER);
-	pCam->SetUserBuffers(bufferPtrs.data(), buffers.size(), width*height);
+	pCam->SetUserBuffers(bufferPtrs.data(), bufferPtrs.size(), finalBufferSize_);
 	//pCam->Timestamp.SetValue();
 
 	if (IsWritable(pCam->GevSCPSPacketSize)) {
@@ -153,21 +180,26 @@ double SpinnakerDriver::expectedFrametime() {
 
 SpinnakerDriver::~SpinnakerDriver() {
 	pCam->EndAcquisition();
+	pCam->DeInit();
 }
 
 std::shared_ptr<RawImage> SpinnakerDriver::borrow(const Spinnaker::ImagePtr& pImage) {
 	void* data = pImage->GetData();
 	for (auto& item : buffers) {
-		if(item.second != nullptr && **item.second == data) {
-			item.second = nullptr;
-			return item.first;
+		if(item.second != nullptr) {
+			void* bStart = static_cast<void*>(**item.second);
+			
+			void* bEnd = static_cast<uint8_t*>(bStart) + finalBufferSize_;
+			
+			if (data >= bStart && data < bEnd) {
+				item.second = nullptr; // Mark buffer as in use
+				return item.first;
+			}
 		}
 	}
 
 	std::cerr << "[Spinnaker] Did not get image with given buffer, creating new buffer; expect OpenCL performance degradation" << std::endl;
-	std::shared_ptr<RawImage> image = std::make_shared<RawImage>(&PixelFormat::RGGB8, (int)pImage->GetWidth() / 2, (int)pImage->GetHeight() / 2, (unsigned char*)pImage->GetData());
-	buffers[image] = nullptr;
-	return image;
+	return std::make_shared<RawImage>(&PixelFormat::RGGB8, (int)pImage->GetWidth() / 2, (int)pImage->GetHeight() / 2, (unsigned char*)data);
 }
 
 void SpinnakerDriver::restore(const RawImage& image) {

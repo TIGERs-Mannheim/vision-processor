@@ -38,6 +38,7 @@ private:
 	Spinnaker::CameraPtr pCam;
 
 	std::map<std::shared_ptr<RawImage>, std::unique_ptr<CLMap<uint8_t>>> buffers; // Use own image buffers for page size alignment (OpenCL pinned memory and zero copy)
+	size_t finalBufferSize_ = 0; // Allocated buffer size per frame, used for buffer matching in borrow()
 };
 
 #endif
