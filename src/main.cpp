@@ -421,6 +421,7 @@ int main(int argc, char* argv[]) {
 #else
 			detection->set_t_sent(r.camera->getTime());
 #endif
+			std::cout << wrapper.DebugString() << std::endl;
 			r.socket->send(wrapper);
 			r.socket->updateTime();
 			r.openCl->clearEvents();
