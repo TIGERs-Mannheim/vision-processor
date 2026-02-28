@@ -19,32 +19,33 @@
 #include "cameradriver.h"
 #include "Spinnaker.h"
 
+// 生のポインタアドレス -> {RawImage, CLMap} の対応表
 struct BufferContext {
     std::shared_ptr<RawImage> image;
     std::unique_ptr<CLMap<uint8_t>> clMap;
 };
-
 class SpinnakerDriver : public CameraDriver {
-public:
-	explicit SpinnakerDriver(const CameraConfig& config);
-	~SpinnakerDriver() override;
+  public:
+  explicit SpinnakerDriver(const CameraConfig& config);
+  ~SpinnakerDriver() override;
 
-	std::shared_ptr<RawImage> readImage() override;
+  std::shared_ptr<RawImage> readImage() override;
 
-	const PixelFormat format() override;
+  const PixelFormat format() override;
 
-	double expectedFrametime() override;
+  double expectedFrametime() override;
 
-	std::shared_ptr<RawImage> borrow(const Spinnaker::ImagePtr& pImage);
-	void restore(const RawImage& image);
+  std::shared_ptr<RawImage> borrow(const Spinnaker::ImagePtr& pImage);
+  void restore(const RawImage& image);
 
-private:
-	Spinnaker::SystemPtr pSystem;
-	Spinnaker::CameraPtr pCam;
+  private:
+  Spinnaker::SystemPtr pSystem;
+  Spinnaker::CameraPtr pCam;
 
-	std::map<std::shared_ptr<RawImage>,std::unique_ptr<CLMap<uint8_t>>> buffers; // Use own image buffers for page size alignment (OpenCL pinned memory and zero copy)
+  std::map<std::shared_ptr<RawImage>, std::unique_ptr<CLMap<uint8_t>>> buffers; // Use own image buffers for page size alignment (OpenCL pinned memory and zero copy)
   size_t finalBufferSize_ = 0; // Allocated buffer size per frame, used for buffer matching in borrow()
-
+  std::vector<void*> m_allocatedPtrs;
+  std::map<void*, BufferContext> m_fastBufferPool;
 };
 
 #endif

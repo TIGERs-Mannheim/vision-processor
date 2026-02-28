@@ -1,9 +1,12 @@
 /*
      Copyright 2024 Felix Weinmann
+
      Licensed under the Apache License, Version 2.0 (the "License");
      you may not use this file except in compliance with the License.
      You may obtain a copy of the License at
+
        http://www.apache.org/licenses/LICENSE-2.0
+
      Unless required by applicable law or agreed to in writing, software
      distributed under the License is distributed on an "AS IS" BASIS,
      WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -15,9 +18,18 @@
 #include "spinnakerdriver.h"
 #include <cstdlib> 
 #include <algorithm>
+#include <iostream>
+#include <unistd.h>
 
 #define CATCH_SPINNAKER(f) try { f; } catch (Spinnaker::Exception &e) { std::cerr << "[Spinnaker] Could not set parameter: " << e.GetFullErrorMessage() << std::endl; }
 
+constexpr int    kMinBufferCount = 3;      // Minimum buffer count required for NewestOnly mode
+constexpr size_t kUsb3PacketSize = 1024;   // USB3 packet size alignment requirement
+// constexpr size_t kPageSize       = 4096;   // Page size alignment requirement for Meteor Lake
+
+static size_t alignUp(size_t size, size_t alignment) {
+	return ((size + alignment - 1) / alignment) * alignment;
+}
 
 class SpinnakerImage : public RawImage {
 public:
@@ -112,50 +124,41 @@ SpinnakerDriver::SpinnakerDriver(const CameraConfig& config) {
 		CATCH_SPINNAKER(pCam->BalanceRatio.SetValue(config.whiteBalanceRed))
 	}
 
-	// 4. 【重要】ストリーム設定とバッファ計算
 	pCam->TLStream.StreamBufferHandlingMode.SetValue(Spinnaker::StreamBufferHandlingMode_NewestOnly);
 
-	// ドキュメント指定: NewestOnly の場合は最低 3 枚必要
-	int requiredBuffers = std::max(3, (int)pCam->TLStream.StreamBufferCountManual.GetMin());
+	// NewestOnly mode requires at least kMinBufferCount buffers
+	int requiredBuffers = std::max(kMinBufferCount, (int)pCam->TLStream.StreamBufferCountManual.GetMin());
 	pCam->TLStream.StreamBufferCountManual.SetValue(requiredBuffers);
 
 	// Provide image buffers to achieve faster mapping with OpenCL
-	int width = (int)pCam->Width.GetValue();
+	int width  = (int)pCam->Width.GetValue();
 	int height = (int)pCam->Height.GetValue();
 	size_t rawSize = (size_t)width * height;
 
-	// ドキュメント指定: USB3パケットサイズ(1024)の倍数に切り上げ
-	size_t usb3AlignedSize = ((rawSize + 1024 - 1) / 1024) * 1024;
-	// Meteor Lake 要求: 4KB(4096)境界にさらに切り上げ
-	size_t finalBufferSize = (usb3AlignedSize + 4095) & ~4095;
+	// Align to both USB3 packet and Page size for Meteor Lake stability/decoding
+	finalBufferSize_ = alignUp(rawSize, kUsb3PacketSize);
 
-	if(config.autoGain()) {
-		CATCH_SPINNAKER(pCam->GainAuto.SetValue(Spinnaker::GainAuto_Continuous))
-	} else {
-		CATCH_SPINNAKER(pCam->GainAuto.SetValue(Spinnaker::GainAuto_Off))
-		CATCH_SPINNAKER(pCam->Gain.SetValue(config.gain))
-	}
 	std::vector<void*> bufferPtrs;
-
 	for(int i = 0; i < requiredBuffers; i++) {
 		void* alignedPtr = nullptr;
-		if (posix_memalign(&alignedPtr, 4096, finalBufferSize) != 0) {
+		if (posix_memalign(&alignedPtr, kUsb3PacketSize, finalBufferSize_) != 0) {
 			throw std::runtime_error("[Spinnaker] posix_memalign failed");
 		}
 		
-		std::shared_ptr<RawImage> buffer = std::make_shared<RawImage>(&PixelFormat::RGGB8, width/2, height/2, (unsigned char*)alignedPtr);
+		// Track pointer for explicit free() in destructor
+		m_allocatedPtrs.push_back(alignedPtr);
 		
-		// OpenCLマッピングを作成
+		auto buffer = std::make_shared<RawImage>(&PixelFormat::RGGB8, width/2, height/2, (unsigned char*)alignedPtr);
+		
+		// Create OpenCL mapping
 		buffers[buffer] = std::make_unique<CLMap<uint8_t>>(buffer->write<uint8_t>());
 		
-		// カメラに渡すリストに追加
 		bufferPtrs.push_back(alignedPtr);
 	}
 
-	// ユーザーバッファの登録
+	// Register user-owned buffers with the camera
 	pCam->SetBufferOwnership(Spinnaker::SPINNAKER_BUFFER_OWNERSHIP_USER);
-	pCam->SetUserBuffers(bufferPtrs.data(), bufferPtrs.size(), finalBufferSize);
-	//pCam->Timestamp.SetValue();
+	pCam->SetUserBuffers(bufferPtrs.data(), bufferPtrs.size(), finalBufferSize_);
 
 	if (IsWritable(pCam->GevSCPSPacketSize)) {
 		CATCH_SPINNAKER(pCam->GevSCPSPacketSize.SetValue(9000));
@@ -177,29 +180,26 @@ double SpinnakerDriver::expectedFrametime() {
 }
 
 SpinnakerDriver::~SpinnakerDriver() {
-	pCam->EndAcquisition();
-	pCam->DeInit();
-}
-
-std::shared_ptr<RawImage> SpinnakerDriver::borrow(const Spinnaker::ImagePtr& pImage) {
-	void* data = pImage->GetData();
-	for (auto& item : buffers) {
-		if(item.second != nullptr) {
-			// item.first->write<uint8_t>() を呼ぶと CLMap オブジェクトが返るため、
-			// そのオブジェクトが保持しているポインタを ** で取り出す
-			void* bStart = static_cast<void*>(**item.second);
-			
-			// 4KB(1ページ)の範囲内であれば同一バッファとみなす
-			void* bEnd = static_cast<uint8_t*>(bStart) + 4096;
-			
-			if (data >= bStart && data < bEnd) {
-				item.second = nullptr; // 貸出中マーク
-				return item.first;
-			}
-		}
+	if (pCam) {
+		pCam->EndAcquisition();
+		pCam->DeInit();
 	}
 
-	// 一致しなかった場合のフォールバック
+	// Explicitly free memory to prevent leaks
+	for (void* ptr : m_allocatedPtrs) {
+		if (ptr) free(ptr);
+	}
+	m_allocatedPtrs.clear();
+}
+std::shared_ptr<RawImage> SpinnakerDriver::borrow(const Spinnaker::ImagePtr& pImage) {
+	void* data = pImage->GetData();
+
+	auto it = m_fastBufferPool.find(data);
+	if (it != m_fastBufferPool.end() && it->second.clMap != nullptr) {
+		it->second.clMap = nullptr; // 使用中にマーク
+		return it->second.image;
+	}
+
 	return std::make_shared<RawImage>(&PixelFormat::RGGB8, (int)pImage->GetWidth() / 2, (int)pImage->GetHeight() / 2, (unsigned char*)data);
 }
 
