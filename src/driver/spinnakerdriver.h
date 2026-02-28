@@ -19,7 +19,7 @@
 #include "cameradriver.h"
 #include "Spinnaker.h"
 
-// 生のポインタアドレス -> {RawImage, CLMap} の対応表
+// Map raw pointer addresses to corresponding {RawImage, CLMap} context
 struct BufferContext {
     std::shared_ptr<RawImage> image;
     std::unique_ptr<CLMap<uint8_t>> clMap;

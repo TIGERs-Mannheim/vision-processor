@@ -196,7 +196,7 @@ std::shared_ptr<RawImage> SpinnakerDriver::borrow(const Spinnaker::ImagePtr& pIm
 
 	auto it = m_fastBufferPool.find(data);
 	if (it != m_fastBufferPool.end() && it->second.clMap != nullptr) {
-		it->second.clMap = nullptr; // 使用中にマーク
+		it->second.clMap = nullptr; // mark as in use
 		return it->second.image;
 	}
 
