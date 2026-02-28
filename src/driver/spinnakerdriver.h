@@ -19,6 +19,11 @@
 #include "cameradriver.h"
 #include "Spinnaker.h"
 
+struct BufferContext {
+    std::shared_ptr<RawImage> image;
+    std::unique_ptr<CLMap<uint8_t>> clMap;
+};
+
 class SpinnakerDriver : public CameraDriver {
 public:
 	explicit SpinnakerDriver(const CameraConfig& config);
@@ -37,8 +42,9 @@ private:
 	Spinnaker::SystemPtr pSystem;
 	Spinnaker::CameraPtr pCam;
 
-	std::map<std::shared_ptr<RawImage>, std::unique_ptr<CLMap<uint8_t>>> buffers; // Use own image buffers for page size alignment (OpenCL pinned memory and zero copy)
-	size_t finalBufferSize_ = 0; // Allocated buffer size per frame, used for buffer matching in borrow()
+	std::map<void*, BufferContext> bufferPool; // Use own image buffers for page size alignment (OpenCL pinned memory and zero copy)
+  size_t finalBufferSize_ = 0; // Allocated buffer size per frame, used for buffer matching in borrow()
+
 };
 
 #endif

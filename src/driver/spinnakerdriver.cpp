@@ -18,17 +18,17 @@
 #include "spinnakerdriver.h"
 #include <cstdlib> 
 #include <algorithm>
+#include <iostream>
+#include <unistd.h>
 
 #define CATCH_SPINNAKER(f) try { f; } catch (Spinnaker::Exception &e) { std::cerr << "[Spinnaker] Could not set parameter: " << e.GetFullErrorMessage() << std::endl; }
 
 constexpr int    kMinBufferCount = 3;      // Minimum buffer count required for NewestOnly mode
 constexpr size_t kUsb3PacketSize = 1024;   // USB3 packet size alignment requirement
-constexpr size_t kPageSize       = 4096;   // Page size alignment requirement for Meteor Lake
 
 static size_t alignUp(size_t size, size_t alignment) {
 	return ((size + alignment - 1) / alignment) * alignment;
 }
-
 
 class SpinnakerImage : public RawImage {
 public:
@@ -134,22 +134,22 @@ SpinnakerDriver::SpinnakerDriver(const CameraConfig& config) {
 	int height = (int)pCam->Height.GetValue();
 	size_t rawSize = (size_t)width * height;
 
-	// USB3 packet size alignment is required for zero copy
-	// https://www.intel.com/content/dam/develop/external/us/en/documents/opencl-zero-copy-in-opencl-1-2.pdf
-	finalBufferSize_ = alignUp(alignUp(rawSize, kUsb3PacketSize), kPageSize);
+	// Buffer size must be a multiple of USB3 packet size for stability
+	finalBufferSize_ = alignUp(rawSize, kUsb3PacketSize);
 
 	std::vector<void*> bufferPtrs;
 
 	for(int i = 0; i < requiredBuffers; i++) {
 		void* alignedPtr = nullptr;
-		if (posix_memalign(&alignedPtr, kPageSize, finalBufferSize_) != 0) {
+		// Use alignment to satisfy Spinnaker SDK constraints
+		if (posix_memalign(&alignedPtr, kUsb3PacketSize, finalBufferSize_) != 0) {
 			throw std::runtime_error("[Spinnaker] posix_memalign failed");
 		}
 		
-		std::shared_ptr<RawImage> buffer = std::make_shared<RawImage>(&PixelFormat::RGGB8, width/2, height/2, (unsigned char*)alignedPtr);
+		auto buffer = std::make_shared<RawImage>(&PixelFormat::RGGB8, width/2, height/2, (unsigned char*)alignedPtr);
 		
-		// Create OpenCL mapping
-		buffers[buffer] = std::make_unique<CLMap<uint8_t>>(buffer->write<uint8_t>());
+		// Map raw pointer to BufferContext to track ownership and OpenCL mappings
+		bufferPool[alignedPtr] = {buffer, std::make_unique<CLMap<uint8_t>>(buffer->write<uint8_t>())};
 		
 		bufferPtrs.push_back(alignedPtr);
 	}
@@ -157,7 +157,6 @@ SpinnakerDriver::SpinnakerDriver(const CameraConfig& config) {
 	// Register user-owned buffers with the camera
 	pCam->SetBufferOwnership(Spinnaker::SPINNAKER_BUFFER_OWNERSHIP_USER);
 	pCam->SetUserBuffers(bufferPtrs.data(), bufferPtrs.size(), finalBufferSize_);
-	//pCam->Timestamp.SetValue();
 
 	if (IsWritable(pCam->GevSCPSPacketSize)) {
 		CATCH_SPINNAKER(pCam->GevSCPSPacketSize.SetValue(9000));
@@ -179,23 +178,28 @@ double SpinnakerDriver::expectedFrametime() {
 }
 
 SpinnakerDriver::~SpinnakerDriver() {
-	pCam->EndAcquisition();
-	pCam->DeInit();
+	if (pCam) {
+		pCam->EndAcquisition();
+		pCam->DeInit();
+	}
+
+	// Explicitly free memory allocated by posix_memalign to prevent leaks
+	for (auto& item : bufferPool) {
+		if (item.first != nullptr) {
+			free(item.first);
+		}
+	}
+	bufferPool.clear();
 }
 
 std::shared_ptr<RawImage> SpinnakerDriver::borrow(const Spinnaker::ImagePtr& pImage) {
 	void* data = pImage->GetData();
-	for (auto& item : buffers) {
-		if(item.second != nullptr) {
-			void* bStart = static_cast<void*>(**item.second);
-			
-			void* bEnd = static_cast<uint8_t*>(bStart) + finalBufferSize_;
-			
-			if (data >= bStart && data < bEnd) {
-				item.second = nullptr; // Mark buffer as in use
-				return item.first;
-			}
-		}
+
+	// Match by raw pointer to ensure we use the pre-allocated OpenCL-mapped buffer
+	auto it = bufferPool.find(data);
+	if (it != bufferPool.end() && it->second.clMap != nullptr) {
+		it->second.clMap = nullptr; // Mark buffer as in use
+		return it->second.image;
 	}
 
 	std::cerr << "[Spinnaker] Did not get image with given buffer, creating new buffer; expect OpenCL performance degradation" << std::endl;
@@ -203,9 +207,10 @@ std::shared_ptr<RawImage> SpinnakerDriver::borrow(const Spinnaker::ImagePtr& pIm
 }
 
 void SpinnakerDriver::restore(const RawImage& image) {
-	for (auto& item : buffers) {
-		if(item.first->buffer == image.buffer) {
-			item.second = std::make_unique<CLMap<uint8_t>>(item.first->write<uint8_t>());
+	for (auto& item : bufferPool) {
+		if(item.second.image->buffer == image.buffer) {
+			// Restore mapping for future use
+			item.second.clMap = std::make_unique<CLMap<uint8_t>>(item.second.image->write<uint8_t>());
 			return;
 		}
 	}
