@@ -25,6 +25,7 @@
 
 constexpr int    kMinBufferCount = 3;      // Minimum buffer count required for NewestOnly mode
 constexpr size_t kUsb3PacketSize = 1024;   // USB3 packet size alignment requirement
+constexpr size_t kPageSize       = 4096;   // Page size alignment requirement for Meteor Lake
 
 static size_t alignUp(size_t size, size_t alignment) {
 	return ((size + alignment - 1) / alignment) * alignment;
@@ -134,22 +135,23 @@ SpinnakerDriver::SpinnakerDriver(const CameraConfig& config) {
 	int height = (int)pCam->Height.GetValue();
 	size_t rawSize = (size_t)width * height;
 
-	// Buffer size must be a multiple of USB3 packet size for stability
-	finalBufferSize_ = alignUp(rawSize, kUsb3PacketSize);
+	// Align to both USB3 packet and Page size for Meteor Lake stability/decoding
+	finalBufferSize_ = alignUp(alignUp(rawSize, kUsb3PacketSize), kPageSize);
 
 	std::vector<void*> bufferPtrs;
-
 	for(int i = 0; i < requiredBuffers; i++) {
 		void* alignedPtr = nullptr;
-		// Use alignment to satisfy Spinnaker SDK constraints
-		if (posix_memalign(&alignedPtr, kUsb3PacketSize, finalBufferSize_) != 0) {
+		if (posix_memalign(&alignedPtr, kPageSize, finalBufferSize_) != 0) {
 			throw std::runtime_error("[Spinnaker] posix_memalign failed");
 		}
 		
+		// Track pointer for explicit free() in destructor
+		m_allocatedPtrs.push_back(alignedPtr);
+		
 		auto buffer = std::make_shared<RawImage>(&PixelFormat::RGGB8, width/2, height/2, (unsigned char*)alignedPtr);
 		
-		// Map raw pointer to BufferContext to track ownership and OpenCL mappings
-		bufferPool[alignedPtr] = {buffer, std::make_unique<CLMap<uint8_t>>(buffer->write<uint8_t>())};
+		// Create OpenCL mapping
+		buffers[buffer] = std::make_unique<CLMap<uint8_t>>(buffer->write<uint8_t>());
 		
 		bufferPtrs.push_back(alignedPtr);
 	}
@@ -183,34 +185,28 @@ SpinnakerDriver::~SpinnakerDriver() {
 		pCam->DeInit();
 	}
 
-	// Explicitly free memory allocated by posix_memalign to prevent leaks
-	for (auto& item : bufferPool) {
-		if (item.first != nullptr) {
-			free(item.first);
-		}
+	// Explicitly free memory to prevent leaks
+	for (void* ptr : m_allocatedPtrs) {
+		if (ptr) free(ptr);
 	}
-	bufferPool.clear();
+	m_allocatedPtrs.clear();
 }
-
 std::shared_ptr<RawImage> SpinnakerDriver::borrow(const Spinnaker::ImagePtr& pImage) {
 	void* data = pImage->GetData();
 
-	// Match by raw pointer to ensure we use the pre-allocated OpenCL-mapped buffer
-	auto it = bufferPool.find(data);
-	if (it != bufferPool.end() && it->second.clMap != nullptr) {
-		it->second.clMap = nullptr; // Mark buffer as in use
+	auto it = m_fastBufferPool.find(data);
+	if (it != m_fastBufferPool.end() && it->second.clMap != nullptr) {
+		it->second.clMap = nullptr; // 使用中にマーク
 		return it->second.image;
 	}
 
-	std::cerr << "[Spinnaker] Did not get image with given buffer, creating new buffer; expect OpenCL performance degradation" << std::endl;
 	return std::make_shared<RawImage>(&PixelFormat::RGGB8, (int)pImage->GetWidth() / 2, (int)pImage->GetHeight() / 2, (unsigned char*)data);
 }
 
 void SpinnakerDriver::restore(const RawImage& image) {
-	for (auto& item : bufferPool) {
-		if(item.second.image->buffer == image.buffer) {
-			// Restore mapping for future use
-			item.second.clMap = std::make_unique<CLMap<uint8_t>>(item.second.image->write<uint8_t>());
+	for (auto& item : buffers) {
+		if(item.first->buffer == image.buffer) {
+			item.second = std::make_unique<CLMap<uint8_t>>(item.first->write<uint8_t>());
 			return;
 		}
 	}
