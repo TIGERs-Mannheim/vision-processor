@@ -397,6 +397,7 @@ int main(int argc, char* argv[]) {
 			filterStddevScore(ballHypotheses, (float)r.minScore);
 
 			SSL_WrapperPacket wrapper;
+			wrapper.set_source(SSL_SOURCE_VISION_PROCESSOR);
 			SSL_DetectionFrame* detection = wrapper.mutable_detection();
 			detection->set_frame_number(frameId);
 			detection->set_t_capture(startTime);

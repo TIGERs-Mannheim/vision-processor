@@ -22,7 +22,7 @@ import yaml
 from google.protobuf.json_format import ParseDict
 
 from visionsocket import parser_vision_network, VisionSocket  # Importing visionsocket generates protobuf files
-from proto.ssl_vision_wrapper_pb2 import SSL_WrapperPacket
+from proto.ssl_vision_wrapper_pb2 import SSL_WrapperPacket, SSL_SOURCE_VISION_PROCESSOR
 from proto.ssl_vision_geometry_pb2 import SSL_FieldShapeType, SSL_GeometryData
 
 
@@ -108,6 +108,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     wrapper = load_geometry(Path(args.config))
+    wrapper.source = SSL_SOURCE_VISION_PROCESSOR
     geometry: SSL_GeometryData = wrapper.geometry
     calib = geometry.calib
 
