@@ -164,7 +164,7 @@ void filterStddevScore(std::list<std::unique_ptr<T>>& bots, float threshold) {
 
 void filterBallsAtCamEdge(const Resources& r, std::list<std::unique_ptr<BallHypothesis>>& balls) {
 	const SSL_GeometryFieldSize& field = r.perspective->field;
-	const float halfLength = (float)field.field_length()/2.0f + (float)field.boundary_width();
+	const float halfLength = (float)field.field_length()/2.0f + goalBoundaryWidth(field);
 	const float halfWidth = (float)field.field_width()/2.0f + (float)field.boundary_width();
 
 	const Eigen::Vector4f& visibleFieldExtent = r.perspective->visibleFieldExtent; // xmin, xmax, ymin, ymax

@@ -75,7 +75,7 @@ void Perspective::geometryCheck(const int width, const int height, const double 
 	for(int y = 0; y < height-1; y++) {
 		for(int x = 0; x < width-1; x++) {
 			Eigen::Vector2f pos = model.image2field({x, y}, (float)maxBotHeight).head<2>();
-			if(abs(pos.x()) < (float)field.field_length()/2.f + (float)field.boundary_width() && abs(pos.y()) < (float)field.field_width()/2.f + (float)field.boundary_width()) {
+			if(abs(pos.x()) < (float)field.field_length()/2.f + goalBoundaryWidth(field) && abs(pos.y()) < (float)field.field_width()/2.f + (float)field.boundary_width()) {
 				float dx = (model.image2field({x+1, y}, (float)maxBotHeight).head<2>() - pos).norm();
 				float dy = (model.image2field({x, y+1}, (float)maxBotHeight).head<2>() - pos).norm();
 
@@ -103,7 +103,7 @@ void Perspective::geometryCheck(const int width, const int height, const double 
 	}
 
 	// clamp to field boundaries
-	const float halfLength = (float)field.field_length()/2.0f + (float)field.boundary_width();
+	const float halfLength = (float)field.field_length()/2.0f + goalBoundaryWidth(field);
 	const float halfWidth = (float)field.field_width()/2.0f + (float)field.boundary_width();
 	visibleFieldExtent[0] = std::max(visibleFieldExtent[0], -halfLength);
 	visibleFieldExtent[1] = std::min(visibleFieldExtent[1], halfLength);

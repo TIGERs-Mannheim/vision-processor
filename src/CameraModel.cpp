@@ -16,6 +16,10 @@
 #include "CameraModel.h"
 
 
+float goalBoundaryWidth(const SSL_GeometryFieldSize& field) {
+	return field.has_boundary_width_goal_line() ? field.boundary_width_goal_line() : field.boundary_width();
+}
+
 void visibleFieldExtentEstimation(const int camId, const int camAmount, const SSL_GeometryFieldSize& field, const bool withBoundary, Eigen::Vector2f &min, Eigen::Vector2f &max) {
 	Eigen::Vector2f fieldSize(field.field_length(), field.field_width());
 
@@ -44,11 +48,11 @@ void visibleFieldExtentEstimation(const int camId, const int camAmount, const SS
 
 	if(withBoundary) {
 		if(pos[0] == 0)
-			min[0] -= (float)field.boundary_width();
+			min[0] -= goalBoundaryWidth(field);
 		if(pos[1] == 0)
 			min[1] -= (float)field.boundary_width();
 		if(pos[0] == size[0]-1)
-			max[0] += (float)field.boundary_width();
+			max[0] += goalBoundaryWidth(field);
 		if(pos[1] == size[1]-1)
 			max[1] += (float)field.boundary_width();
 	}

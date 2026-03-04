@@ -18,6 +18,8 @@
 
 #include "proto/ssl_vision_geometry.pb.h"
 
+float goalBoundaryWidth(const SSL_GeometryFieldSize& field);
+
 void visibleFieldExtentEstimation(int camId, int camAmount, const SSL_GeometryFieldSize& field, bool withBoundary, Eigen::Vector2f& min, Eigen::Vector2f& max);
 
 
