@@ -74,7 +74,7 @@ geometry:
 thresholds:
   # Minimum mean cosine similarity (not normalized) of the blob border gradient (0 - 195075.0)
   # High value lead to undetected blobs. Low values lead to an increase in false positive blob detections.
-  #circularity: 15.0
+  #circularity: 10.0
   # Minimum circularity/(3*stddev) ball blob score
   #score: 5.0
 
@@ -96,15 +96,16 @@ color:
   # Strength of the previous color during color updates (0.0 - 1.0-reference_force)
   #history_force: 0.7
 
+  # Colors are in Y,U,V format
   # Reference colors used for ball determination
-  #orange: [192, 128, 64]
+  #orange: [128, 64, 192]
   #field: [128, 128, 128]
   # Reference colors used for center blob determination
-  #yellow: [255, 128, 0]
-  #blue: [0, 128, 255]
+  #yellow: [128, 64, 128]
+  #blue: [128, 192, 64]
   # Reference colors used for side blob determination
-  #green: [0, 255, 128]
-  #pink: [255, 0, 128]
+  #green: [128, 64, 64]
+  #pink: [128, 192, 192]
 
 tracking:
   # Min tracking radius in mm

@@ -76,7 +76,7 @@ Resources::Resources(const YAML::Node& config) {
 	}
 
 	YAML::Node thresholds = getOptional(config["thresholds"]);
-	minCircularity = thresholds["circularity"].as<double>(15.0);
+	minCircularity = thresholds["circularity"].as<double>(10.0);
 	minScore = thresholds["score"].as<double>(5.0);
 	maxBlobs = thresholds["blobs"].as<int>(2000);
 	minConfidence = thresholds["min_confidence"].as<float>(0.2f);
@@ -101,12 +101,12 @@ Resources::Resources(const YAML::Node& config) {
 	YAML::Node color = getOptional(config["color"]);
 	referenceForce = color["reference_force"].as<float>(0.1f);
 	historyForce = color["history_force"].as<float>(0.7f);
-	orangeReference = color["orange"].as<Eigen::Vector3i>(Eigen::Vector3i{192, 128, 64});
+	orangeReference = color["orange"].as<Eigen::Vector3i>(Eigen::Vector3i{128, 64, 192});
 	fieldReference = color["field"].as<Eigen::Vector3i>(Eigen::Vector3i{128, 128, 128});
-	yellowReference = color["yellow"].as<Eigen::Vector3i>(Eigen::Vector3i{255, 128, 0});
-	blueReference = color["blue"].as<Eigen::Vector3i>(Eigen::Vector3i{0, 128, 255});
-	greenReference = color["green"].as<Eigen::Vector3i>(Eigen::Vector3i{0, 255, 128});
-	pinkReference = color["pink"].as<Eigen::Vector3i>(Eigen::Vector3i{255, 0, 128});
+	yellowReference = color["yellow"].as<Eigen::Vector3i>(Eigen::Vector3i{128, 64, 128});
+	blueReference = color["blue"].as<Eigen::Vector3i>(Eigen::Vector3i{128, 192, 64});
+	greenReference = color["green"].as<Eigen::Vector3i>(Eigen::Vector3i{128, 64, 64});
+	pinkReference = color["pink"].as<Eigen::Vector3i>(Eigen::Vector3i{128, 192, 192});
 	orange = orangeReference;
 	field = fieldReference;
 	yellow = yellowReference;
