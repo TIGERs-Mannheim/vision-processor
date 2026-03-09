@@ -43,6 +43,9 @@ private:
 	Spinnaker::SystemPtr pSystem;
 	Spinnaker::CameraPtr pCam;
 
+	bool autoGain;
+	bool autoGamma;
+
 	std::map<std::shared_ptr<RawImage>, std::unique_ptr<CLMap<uint8_t>>> buffers; // Use own image buffers for page size alignment (OpenCL pinned memory and zero copy)
 };
 

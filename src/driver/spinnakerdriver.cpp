@@ -80,6 +80,7 @@ SpinnakerDriver::SpinnakerDriver(const CameraConfig& config) {
 		CATCH_SPINNAKER(pCam->ExposureTime.SetValue(config.exposure * 1000.0))
 	}
 
+	autoGain = config.autoGain();
 	if(config.autoGain()) {
 		CATCH_SPINNAKER(pCam->GainAuto.SetValue(Spinnaker::GainAuto_Continuous))
 	} else {
@@ -91,6 +92,7 @@ SpinnakerDriver::SpinnakerDriver(const CameraConfig& config) {
 		CATCH_SPINNAKER(pCam->AutoExposureControlPriority.SetValue(Spinnaker::AutoExposureControlPriority_Gain))
 	}
 
+	autoGamma = config.autoGamma();
 	if(config.autoGamma()) {
 		CATCH_SPINNAKER(pCam->GammaEnable.SetValue(false))
 	} else {
@@ -181,19 +183,27 @@ void SpinnakerDriver::restore(const RawImage& image) {
 }
 
 double SpinnakerDriver::getGain() {
-	//TODO
-	return 1.0;
+	return pCam->Gain.getValue();
 }
 void SpinnakerDriver::setGain(double gain) {
-	//TODO
+	if(autoGain) {
+		CATCH_SPINNAKER(pCam->GainAuto.SetValue(Spinnaker::GainAuto_Off))
+		autoGain = false;
+	}
+
+	CATCH_SPINNAKER(pCam->Gain.SetValue(gain))
 }
 
 double SpinnakerDriver::getGamma() {
-	//TODO
-	return 1.0;
+	return pCam->Gamma.GetValue();
 }
 void SpinnakerDriver::setGamma(double gamma) {
-	//TODO
+	if(autoGamma) {
+		CATCH_SPINNAKER(pCam->GammaEnable.SetValue(true))
+		autoGamma = false;
+	}
+
+	CATCH_SPINNAKER(pCam->Gamma.SetValue((float)gamma))
 }
 
 #endif
