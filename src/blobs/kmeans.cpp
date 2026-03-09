@@ -26,10 +26,10 @@ bool kMeans(const Eigen::Vector3i& contrast, const std::vector<Eigen::Vector3i>&
 
 	for (unsigned int i = 0; i < values.size(); i++) {
 		const auto& value = values[i];
-		outGroupDiff = std::min(outGroupDiff, (float)(value - contrast).squaredNorm());
+		outGroupDiff = std::min(outGroupDiff, (float)(value - contrast).tail<2>().squaredNorm());
 
 		for (unsigned int j = i+1; j < values.size(); j++) {
-			inGroupDiff = std::min(inGroupDiff, (float)(values[j] - value).squaredNorm());
+			inGroupDiff = std::min(inGroupDiff, (float)(values[j] - value).tail<2>().squaredNorm());
 		}
 	}
 
@@ -41,8 +41,8 @@ bool kMeans(const Eigen::Vector3i& contrast, const std::vector<Eigen::Vector3i>&
 
 	//https://reasonabledeviations.com/2019/10/02/k-means-in-cpp/
 	//https://www.analyticsvidhya.com/blog/2021/05/k-mean-getting-the-optimal-number-of-clusters/
-	c1 = *std::min_element(values.begin(), values.end(), [&](const Eigen::Vector3i& a, const Eigen::Vector3i& b) { return (a - c1).squaredNorm() < (b - c1).squaredNorm(); });
-	c2 = *std::min_element(values.begin(), values.end(), [&](const Eigen::Vector3i& a, const Eigen::Vector3i& b) { return (a - c2).squaredNorm() < (b - c2).squaredNorm(); });
+	c1 = *std::min_element(values.begin(), values.end(), [&](const Eigen::Vector3i& a, const Eigen::Vector3i& b) { return (a - c1).tail<2>().squaredNorm() < (b - c1).tail<2>().squaredNorm(); });
+	c2 = *std::min_element(values.begin(), values.end(), [&](const Eigen::Vector3i& a, const Eigen::Vector3i& b) { return (a - c2).tail<2>().squaredNorm() < (b - c2).tail<2>().squaredNorm(); });
 	if(c1 == c2) {
 		c1 = c1backup;
 		c2 = c2backup;
@@ -59,7 +59,7 @@ bool kMeans(const Eigen::Vector3i& contrast, const std::vector<Eigen::Vector3i>&
 		n1 = 0;
 		n2 = 0;
 		for (const auto& value : values) {
-			if((value - c1).squaredNorm() < (value - c2).squaredNorm()) {
+			if((value - c1).tail<2>().squaredNorm() < (value - c2).tail<2>().squaredNorm()) {
 				sum1 += value;
 				n1++;
 			} else {
@@ -80,7 +80,7 @@ bool kMeans(const Eigen::Vector3i& contrast, const std::vector<Eigen::Vector3i>&
 		c2 = sum2 / n2;
 	}
 
-	if((float)(c1 - c2).norm() < sqrtf(outGroupDiff)/2.0f) {
+	if((float)(c1 - c2).tail<2>().norm() < sqrtf(outGroupDiff)/2.0f) {
 		c1 = c1backup;
 		c2 = c2backup;
 		return false;

@@ -81,8 +81,8 @@ void BallHypothesis::addToDetectionFrame(const Resources& r, SSL_DetectionFrame*
 }
 
 void BallHypothesis::calcColorScore(const Resources& r) {
-	int falseOrange = (blob->color - r.field).squaredNorm();
-	int orange = (blob->color - r.orange).squaredNorm();
+	int falseOrange = (blob->color - r.field).tail<2>().squaredNorm();
+	int orange = (blob->color - r.orange).tail<2>().squaredNorm();
 
 	if (falseOrange <= orange) {
 		score = 0;
@@ -217,11 +217,11 @@ void DetectionBotHypothesis::calcBotId(const Resources& r) {
 	Eigen::Vector3i pink = r.pink;
 	kMeans(blobs[0]->color, {blobs[1]->color, blobs[2]->color, blobs[3]->color, blobs[4]->color}, green, pink);
 
-	botId = ((blobs[0]->color - r.blue).squaredNorm() < (blobs[0]->color - r.yellow).squaredNorm() ? 16 : 0) + patternLUT[
-			(((blobs[1]->color - green).squaredNorm() < (blobs[1]->color - pink).squaredNorm() ? 1 : 0) << 3) +
-			(((blobs[2]->color - green).squaredNorm() < (blobs[2]->color - pink).squaredNorm()? 1 : 0) << 2) +
-			(((blobs[3]->color - green).squaredNorm() < (blobs[3]->color - pink).squaredNorm() ? 1 : 0) << 1) +
-			((blobs[4]->color - green).squaredNorm() < (blobs[4]->color - pink).squaredNorm() ? 1 : 0)
+	botId = ((blobs[0]->color - r.blue).tail<2>().squaredNorm() < (blobs[0]->color - r.yellow).tail<2>().squaredNorm() ? 16 : 0) + patternLUT[
+			(((blobs[1]->color - green).tail<2>().squaredNorm() < (blobs[1]->color - pink).tail<2>().squaredNorm() ? 1 : 0) << 3) +
+			(((blobs[2]->color - green).tail<2>().squaredNorm() < (blobs[2]->color - pink).tail<2>().squaredNorm()? 1 : 0) << 2) +
+			(((blobs[3]->color - green).tail<2>().squaredNorm() < (blobs[3]->color - pink).tail<2>().squaredNorm() ? 1 : 0) << 1) +
+			((blobs[4]->color - green).tail<2>().squaredNorm() < (blobs[4]->color - pink).tail<2>().squaredNorm() ? 1 : 0)
 	];
 }
 
@@ -262,7 +262,7 @@ void TrackedBotHypothesis::calcTrackingScore(const Resources& r) {
 			oppositeColor = ((patterns[botId % 16] >> (4-i)) & 1) ? r.pink : r.green;
 		}
 
-		if((blob->color - oppositeColor).squaredNorm() - (blob->color - blobColor).squaredNorm() <= 0) {
+		if((blob->color - oppositeColor).tail<2>().squaredNorm() - (blob->color - blobColor).tail<2>().squaredNorm() <= 0) {
 			score = 0.0f;
 			return;
 		}

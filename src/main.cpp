@@ -360,7 +360,7 @@ int main(int argc, char* argv[]) {
 					CLMatch& match = matchMap[i];
 					matches.push_back({
 						.pos = r.perspective->flat2field({match.x, match.y}),
-						.color = {128, match.color.g, match.color.b},
+						.color = {match.color.r, match.color.g, match.color.b},
 						.center = {match.center.r, match.center.g, match.center.b},
 						.circ = match.circ,
 						.score = match.score
