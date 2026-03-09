@@ -33,6 +33,12 @@ public:
 	std::shared_ptr<RawImage> borrow(const Spinnaker::ImagePtr& pImage);
 	void restore(const RawImage& image);
 
+	double getGain() override;
+	void setGain(double gain) override;
+
+	double getGamma() override;
+	void setGamma(double gamma) override;
+
 private:
 	Spinnaker::SystemPtr pSystem;
 	Spinnaker::CameraPtr pCam;

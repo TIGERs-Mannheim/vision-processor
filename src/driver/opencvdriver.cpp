@@ -87,3 +87,18 @@ double OpenCVDriver::getTime() {
 
 	return pos / capture.get(cv::CAP_PROP_FPS);
 }
+
+
+double OpenCVDriver::getGain() {
+	return capture.get(cv::CAP_PROP_GAIN);
+}
+void OpenCVDriver::setGain(double gain) {
+	capture.set(cv::CAP_PROP_GAIN, gain);
+}
+
+double OpenCVDriver::getGamma() {
+	return capture.get(cv::CAP_PROP_GAMMA);
+}
+void OpenCVDriver::setGamma(double gamma) {
+	capture.set(cv::CAP_PROP_GAMMA);
+}

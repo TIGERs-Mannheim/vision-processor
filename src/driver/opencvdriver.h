@@ -31,6 +31,12 @@ public:
 
 	double getTime() override;
 
+	double getGain() override;
+	void setGain(double gain) override;
+
+	double getGamma() override;
+	void setGamma(double gamma) override;
+
 private:
 	cv::VideoCapture capture;
 	std::shared_ptr<RawImage> image = nullptr;

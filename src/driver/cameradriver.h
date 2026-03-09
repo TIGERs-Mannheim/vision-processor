@@ -44,6 +44,14 @@ public:
 
 	// Bound to the driver for reproducibility during testing with files.
 	virtual double getTime();
+
+	// Methods to adjust linar camera brightness
+	virtual double getGain();
+	virtual void setGain(double gain);
+
+	// Methods to adjust exponential camera brightness
+	virtual double getGamma();
+	virtual void setGamma(double gamma);
 };
 
 

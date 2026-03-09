@@ -180,4 +180,20 @@ void SpinnakerDriver::restore(const RawImage& image) {
 	}
 }
 
+double SpinnakerDriver::getGain() {
+	//TODO
+	return 1.0;
+}
+void SpinnakerDriver::setGain(double gain) {
+	//TODO
+}
+
+double SpinnakerDriver::getGamma() {
+	//TODO
+	return 1.0;
+}
+void SpinnakerDriver::setGamma(double gamma) {
+	//TODO
+}
+
 #endif

@@ -31,6 +31,22 @@ double CameraDriver::getTime() {
 }
 
 
+double CameraDriver::getGain() {
+	return 1.0;
+}
+void CameraDriver::setGain(double gain) {
+	// do nothing
+}
+
+
+double CameraDriver::getGamma() {
+	return 1.0;
+}
+void CameraDriver::setGamma(double gamma) {
+	// do nothing
+}
+
+
 CameraConfig::CameraConfig(const YAML::Node &cam) {
 	driverType = cam["driver"].as<std::string>("SPINNAKER");
 
