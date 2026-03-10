@@ -15,7 +15,7 @@ for all vision_processors, teams and the game controller.
 
 ## Dependency installation and compilation
 
-### geom_publisher.py cam_viewer.py
+### Only geom_publisher.py cam_viewer.py (e.g. vision expert laptop)
 Required only for the geometry publisher and camera viewer.
 `mpv` is optional and only required for the camera viewer.
 
@@ -25,7 +25,7 @@ Arch based distributions: `pacman -S make python-protobuf python-yaml mpv`
 
 Installation with PIP: `pip install protobuf pyyaml`
 
-### vision_processor automatic
+### vision_processor automatic (recommended)
 
 1. Install the camera SDK required for your camera type
    (Arch user repository mvIMPACT: `mvimpact-acquire` Spinnaker: `spinnaker-sdk`)
@@ -75,9 +75,6 @@ Installation with PIP: `pip install protobuf pyyaml`
 
 ## Troubleshooting
 
-If no OpenCL platform can be found despite OpenCL driver installation, check the users groups and permission to compute
-on the GPU (e.g. for Intel: ![necessary user groups](https://www.intel.com/content/www/us/en/docs/oneapi/installation-guide-hpc-cluster/2023-0/step-4-set-up-user-permissions-for-using-the.html#SET-PERMISSIONS)).
-
 The video livestream cycles through 4 different views:
 1. **Raw camera data**
    If the data is very bright, dark or miscolored consider adjusting
@@ -90,10 +87,27 @@ The video livestream cycles through 4 different views:
 4. **Blob circularity score**
    If the blob score of some undetected blobs is too faint consider reducing the `circularity` threshold.
 
+### No OpenCL platform/device found
+
+If no OpenCL platform can be found despite OpenCL driver installation, check the users groups and permission to compute
+on the GPU (e.g. for Intel: ![necessary user groups](https://www.intel.com/content/www/us/en/docs/oneapi/installation-guide-hpc-cluster/2023-0/step-4-set-up-user-permissions-for-using-the.html#SET-PERMISSIONS)).
+
+### Bots frequently changing team and IDs
+
+If the blobs are nearly white: adjust exposure, gain and gamma such that the blobs are no longer oversaturated.
+
+### Ghost balls at field line crossings
+
+- Adjust the white balance such that field lines have no orange tint.
+- Carefully try increasing the `score` threshold.
+
+### Balls undetected or blobs are attributed the wrong color
+
 If blobs are attributed the wrong color (or balls are seemingly undetected despite high blob scores)
 adjust the reference colors under `color`.
 
-If nothing helps:
+### If nothing else helps
+
 Activate `stream: raw_feed: true` in your `config[X].yml` and record the video livestream
 with `ffmpeg -protocol_whitelist file,rtp,udp -i python/cam[X].sdp cam[X].mp4`.
-Publish the resulting video including your `config[X].yml` and `geometry[X].yml` for further remote analysis.
+Publish the resulting video including your `config[X].yml` and `geometry[X].yml` for further remote analysis in a bug report.
