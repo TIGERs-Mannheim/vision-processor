@@ -71,11 +71,14 @@ Installation with PIP: `pip install protobuf pyyaml`
 7. Modify `geometry[X].yml` to match your field geometry.
    (for simple use cases configuring the field size, penalty area and goal will suffice)
 8. Start `python/geom_publisher.py geometry[X].yml`.
+   The calibration is successful when the reprojected livestream views are parallel to the image frame.
+   If the calibration is unsuccessful, restart the geom_publisher for a new geometry calibration.
+   For setups with multiple cameras it is recommended to tune the calibration by hand.
 
 
 ## Troubleshooting
 
-The video livestream cycles through 4 different views:
+The camera livestream cycles through 4 different views:
 1. **Raw camera data**
    If the data is very bright, dark or miscolored consider adjusting
    the camera `gain`, `exposure` and `white_balance` in your `config[X].yml`.
