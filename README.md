@@ -109,6 +109,10 @@ If the blobs are nearly white: adjust exposure, gain and gamma such that the blo
 If blobs are attributed the wrong color (or balls are seemingly undetected despite high blob scores)
 adjust the reference colors under `color`.
 
+### Bot detections are lost in close distance
+
+If bot detections are lost when multiple bots are in close distance (e.g. during collisions), increase `clipping_tolerance`.
+
 ### If nothing else helps
 
 Activate `stream: raw_feed: true` in your `config[X].yml` and record the video livestream
