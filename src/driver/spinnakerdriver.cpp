@@ -169,7 +169,7 @@ std::shared_ptr<RawImage> SpinnakerDriver::borrow(const Spinnaker::ImagePtr& pIm
 
 	std::cerr << "[Spinnaker] Did not get image with given buffer, creating new buffer; expect OpenCL performance degradation" << std::endl;
 	std::shared_ptr<RawImage> image = std::make_shared<RawImage>(&PixelFormat::RGGB8, (int)pImage->GetWidth() / 2, (int)pImage->GetHeight() / 2, (unsigned char*)pImage->GetData());
-	buffers[image] = nullptr;
+	pImage->Release();
 	return image;
 }
 
