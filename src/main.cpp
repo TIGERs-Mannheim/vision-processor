@@ -447,6 +447,18 @@ int main(int argc, char* argv[]) {
 						break;
 				}
 			}
+
+			//Update gain and gamma
+			if(frameId % 10 == 0) { // Only every tenth frame to ensure previous updates have already propagated
+				double gain = r.camera->getGain();
+				double gamma = r.camera->getGamma();
+				//TODO estimate gain/gamma changes
+				// Option A: min / max / range
+				// Option B: distance to circularity trend, color contrast
+				// gamma: y_out = y_in^gamma (Default photography gamma 0,4545454545454545 (1/2.2))
+				r.camera->setGain(gain);
+				r.camera->setGamma(gamma);
+			}
 		} else if(r.socket->getGeometryVersion()) {
 			geometryCalibration(r, *r.quad2rgba(channels));
 		} else {
