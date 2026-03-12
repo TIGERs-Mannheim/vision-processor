@@ -15,19 +15,18 @@
  */
 #include <csignal>
 #include <iostream>
-#include <iomanip>
 #include <opencv2/bgsegm.hpp>
 #include <yaml-cpp/yaml.h>
 
+#include "proto/ssl_vision_geometry.pb.h"
 #include "proto/ssl_vision_wrapper.pb.h"
 #include "Resources.h"
-#include "GroundTruth.h"
 #include "calib/GeomModel.h"
 #include "pattern.h"
 #include "cl_kernels.h"
 #include "blobs/hypothesis.h"
-#include "blobs/kmeans.h"
 #include "blobs/kdtree.h"
+#include "blobs/colorupdate.h"
 #include <opencv2/video/background_segm.hpp>
 
 struct __attribute__ ((packed)) CLMatch {
@@ -236,67 +235,6 @@ void generateNonclippingBallHypotheses(const Resources& r, const std::list<std::
 	}
 }
 
-static inline void updateColor(const Resources& r, const Eigen::Vector3i& reference, const Eigen::Vector3i& oldColor, Eigen::Vector3i& color) {
-	const float updateForce = 1.0f - r.referenceForce - r.historyForce;
-	color = (r.referenceForce*reference.cast<float>() + r.historyForce*oldColor.cast<float>() + updateForce*color.cast<float>()).cast<int>();
-}
-
-static void updateColors(Resources& r, const std::list<std::unique_ptr<BotHypothesis>>& bestBotModels, const std::list<std::unique_ptr<BallHypothesis>>& ballCandidates) {
-	Eigen::Vector3i oldField = r.field;
-	Eigen::Vector3i oldOrange = r.orange;
-	Eigen::Vector3i oldYellow = r.yellow;
-	Eigen::Vector3i oldBlue = r.blue;
-	Eigen::Vector3i oldGreen = r.green;
-	Eigen::Vector3i oldPink = r.pink;
-
-	std::vector<Eigen::Vector3i> centerBlobs;
-	Eigen::Vector3i pink(0, 0, 0);
-	int pinkN = 0;
-	Eigen::Vector3i green(0, 0, 0);
-	int greenN = 0;
-	for (const auto& model : bestBotModels) {
-		if(model->blobs[0] != nullptr)
-			centerBlobs.push_back(model->blobs[0]->color);
-
-		int botId = model->botId % 16;
-		for(int i = 1; i < 5; i++) {
-			const Match* blob = model->blobs[i];
-			if(blob == nullptr)
-				continue;
-
-			if((patterns[botId] >> (4-i)) & 1) {
-				green += blob->color;
-				greenN++;
-			} else {
-				pink += blob->color;
-				pinkN++;
-			}
-		}
-	}
-
-	if(pinkN > 0) {
-		r.pink = pink / pinkN;
-		updateColor(r, r.pinkReference, oldPink, r.pink);
-	}
-	if(greenN > 0) {
-		r.green = green / greenN;
-		updateColor(r, r.greenReference, oldGreen, r.green);
-	}
-
-	if(kMeans(r.pink, centerBlobs, r.yellow, r.blue)) {
-		updateColor(r, r.yellowReference, oldYellow, r.yellow);
-		updateColor(r, r.blueReference, oldBlue, r.blue);
-	}
-
-	std::vector<Eigen::Vector3i> ballBlobs;
-	for (const auto& ball : ballCandidates)
-		ballBlobs.push_back(ball->blob->center);
-
-	if(kMeans(r.blue, ballBlobs, r.orange, r.field)) {
-		updateColor(r, r.orangeReference, oldOrange, r.orange);
-		updateColor(r, r.fieldReference, oldField, r.field);
-	}
-}
 
 #define BENCHMARK false
 

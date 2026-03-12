@@ -83,6 +83,7 @@ Resources::Resources(const YAML::Node& config) {
 	minCamEdgeDistance = thresholds["min_cam_edge_distance"].as<double>(170.0);
 	resamplingFactor = thresholds["resampling_factor"].as<float>(1.0f);
 	clippingTolerance = thresholds["clipping_tolerance"].as<float>(10.0f);
+	geometryTolerance = thresholds["geometry_tolerance"].as<float>(10.0f);
 
 	YAML::Node tracking = getOptional(config["tracking"]);
 	minTrackingRadius = tracking["min_tracking_radius"].as<double>(20.0);
@@ -113,6 +114,7 @@ Resources::Resources(const YAML::Node& config) {
 	blue = blueReference;
 	green = greenReference;
 	pink = pinkReference;
+	fieldLineColor = fieldReference;
 
 	YAML::Node debug = getOptional(config["debug"]);
 	groundTruth = debug["ground_truth"].as<std::string>("gt.yml");

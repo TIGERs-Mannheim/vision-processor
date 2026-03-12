@@ -53,6 +53,7 @@ public:
 	float minConfidence;
 	float resamplingFactor;
 	float clippingTolerance;
+	float geometryTolerance;
 
 	float referenceForce;
 	float historyForce;
@@ -68,6 +69,7 @@ public:
 	Eigen::Vector3i blue;
 	Eigen::Vector3i green;
 	Eigen::Vector3i pink;
+	Eigen::Vector3i fieldLineColor = fieldReference;
 
 	int cameraAmount;
 	double cameraHeight; // Just for calibration, do not use elsewhere (0.0 as special value for automatic calibration)

@@ -83,8 +83,9 @@ void BallHypothesis::addToDetectionFrame(const Resources& r, SSL_DetectionFrame*
 void BallHypothesis::calcColorScore(const Resources& r) {
 	int falseOrange = (blob->color - r.field).squaredNorm();
 	int orange = (blob->color - r.orange).squaredNorm();
+	int fieldLine = (blob->color - r.fieldLineColor).squaredNorm();
 
-	if (falseOrange <= orange) {
+	if (falseOrange <= orange || fieldLine <= orange) {
 		score = 0;
 		return;
 	}
