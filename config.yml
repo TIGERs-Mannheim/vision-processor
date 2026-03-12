@@ -90,6 +90,10 @@ thresholds:
   # Maximum allowed clipping of two objects in mm
   #clipping_tolerance: 10.0
 
+  # Added tolerance to geometry related operations in mm.
+  # Affects field border cutoff area and field line blob classification.
+  #geometry_tolerance: 10.0
+
 color:
   # Strength of the reference color during color updates (0.0 - 0.5-history_force/2)
   #reference_force: 0.1

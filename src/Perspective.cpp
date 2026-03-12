@@ -103,8 +103,8 @@ void Perspective::geometryCheck(const int width, const int height, const double 
 	}
 
 	// clamp to field boundaries
-	const float halfLength = (float)field.field_length()/2.0f + goalBoundaryWidth(field);
-	const float halfWidth = (float)field.field_width()/2.0f + (float)field.boundary_width();
+	const float halfLength = (float)field.field_length()/2.0f + goalBoundaryWidth(field) + geometryTolerance;
+	const float halfWidth = (float)field.field_width()/2.0f + (float)field.boundary_width() + geometryTolerance;
 	visibleFieldExtent[0] = std::max(visibleFieldExtent[0], -halfLength);
 	visibleFieldExtent[1] = std::min(visibleFieldExtent[1], halfLength);
 	visibleFieldExtent[2] = std::max(visibleFieldExtent[2], -halfWidth);
