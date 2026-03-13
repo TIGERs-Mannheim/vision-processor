@@ -18,6 +18,7 @@
 #include <opencv2/bgsegm.hpp>
 #include <yaml-cpp/yaml.h>
 
+#include "CameraModel.h"
 #include "proto/ssl_vision_geometry.pb.h"
 #include "proto/ssl_vision_wrapper.pb.h"
 #include "Resources.h"
@@ -162,7 +163,15 @@ void filterStddevScore(std::list<std::unique_ptr<T>>& bots, float threshold) {
 }
 
 static inline bool closerThanCamEdgeDistance(const Resources& r, const Eigen::Vector2f& pos, const Eigen::Vector2f& border) {
-	return (r.perspective->model.image2field(border, (float)r.gcSocket->maxBotHeight).head<2>() - pos).squaredNorm() < r.minCamEdgeDistance*r.minCamEdgeDistance;
+	const SSL_GeometryFieldSize& field = r.perspective->field;
+	const float halfFieldLength = field.field_length()/2 + goalBoundaryWidth(field);
+	const float halfFieldWidth = field.field_width()/2 + field.boundary_width();
+
+	Eigen::Vector2f borderPos = r.perspective->model.image2field(border, (float)r.gcSocket->maxBotHeight).head<2>();
+
+	// Don't filter if border is outside field -> cannot be a partial robot
+	bool borderInsideField = borderPos.x() >= -halfFieldLength && borderPos.x() <= halfFieldLength && borderPos.y() >= -halfFieldWidth && borderPos.y() <= halfFieldWidth;
+	return borderInsideField && (borderPos - pos).squaredNorm() < r.minCamEdgeDistance*r.minCamEdgeDistance;
 }
 
 void filterBallsAtCamEdge(const Resources& r, std::list<std::unique_ptr<BallHypothesis>>& balls) {
