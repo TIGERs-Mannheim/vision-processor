@@ -161,24 +161,20 @@ void filterStddevScore(std::list<std::unique_ptr<T>>& bots, float threshold) {
 	}
 }
 
+static inline bool closerThanCamEdgeDistance(const Resources& r, const Eigen::Vector2f& pos, const Eigen::Vector2f& border) {
+	return (r.perspective->model.image2field(border, (float)r.gcSocket->maxBotHeight).head<2>() - pos).squaredNorm() < r.minCamEdgeDistance*r.minCamEdgeDistance;
+}
+
 void filterBallsAtCamEdge(const Resources& r, std::list<std::unique_ptr<BallHypothesis>>& balls) {
-	const SSL_GeometryFieldSize& field = r.perspective->field;
-	const float halfLength = (float)field.field_length()/2.0f + goalBoundaryWidth(field);
-	const float halfWidth = (float)field.field_width()/2.0f + (float)field.boundary_width();
-
-	const Eigen::Vector4f& visibleFieldExtent = r.perspective->visibleFieldExtent; // xmin, xmax, ymin, ymax
-	bool xMinIsEdge = visibleFieldExtent[0] != -halfLength;
-	bool xMaxIsEdge = visibleFieldExtent[1] != halfLength;
-	bool yMinIsEdge = visibleFieldExtent[2] != -halfWidth;
-	bool yMaxIsEdge = visibleFieldExtent[3] != halfWidth;
-
 	for(auto it = balls.cbegin(); it != balls.cend(); ) {
 		const Eigen::Vector2f& pos = (*it)->pos;
+		const Eigen::Vector2f imgPos = r.perspective->model.field2image({pos.x(), pos.y(), (float)r.gcSocket->maxBotHeight});
+
 		if(
-				(xMinIsEdge && abs(pos.x() - visibleFieldExtent[0]) <= r.minCamEdgeDistance) ||
-				(xMaxIsEdge && abs(pos.x() - visibleFieldExtent[1]) <= r.minCamEdgeDistance) ||
-				(yMinIsEdge && abs(pos.y() - visibleFieldExtent[2]) <= r.minCamEdgeDistance) ||
-				(yMaxIsEdge && abs(pos.y() - visibleFieldExtent[3]) <= r.minCamEdgeDistance)
+				closerThanCamEdgeDistance(r, pos, Eigen::Vector2f(0.0f, imgPos.y())) ||
+				closerThanCamEdgeDistance(r, pos, Eigen::Vector2f(r.perspective->model.size.x()-1, imgPos.y())) ||
+				closerThanCamEdgeDistance(r, pos, Eigen::Vector2f(imgPos.x(), 0.0f)) ||
+				closerThanCamEdgeDistance(r, pos, Eigen::Vector2f(imgPos.x(), r.perspective->model.size.y()-1))
 		) {
 			it = balls.erase(it);
 		} else {
