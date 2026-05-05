@@ -580,6 +580,7 @@ void geometryCalibration(const Resources& r, const CLImage& rgba) {
 	std::cout << "[Geometry calibration] Best model: " << model << " error " << (error/(float)linePixels.size()) << std::endl;
 
 	SSL_WrapperPacket wrapper;
+	wrapper.set_source(SSL_SOURCE_VISION_PROCESSOR);
 	wrapper.mutable_geometry()->CopyFrom(r.socket->getGeometry());
 	wrapper.mutable_geometry()->clear_calib();
 	wrapper.mutable_geometry()->add_calib()->CopyFrom(model.getProto(r.camId));

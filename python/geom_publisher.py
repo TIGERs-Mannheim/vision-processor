@@ -124,7 +124,7 @@ if __name__ == '__main__':
                         if c.SerializeToString(deterministic=True) == camera.SerializeToString(deterministic=True):
                             continue
                         else:
-                            calib[camera.camera_id].CopyFrom(camera)
+                            c.CopyFrom(camera)
                             updated = True
 
                 if not handled:
