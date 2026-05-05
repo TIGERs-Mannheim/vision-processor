@@ -15,6 +15,7 @@
  */
 #include <opencv2/opencv.hpp>
 #include "GeomModel.h"
+#include "CalibDiagnostic.h"
 #include "Distortion.h"
 #include "LineDetection.h"
 #include "proto/ssl_vision_wrapper.pb.h"
@@ -503,12 +504,25 @@ static bool cornerCalibration(const Resources& r, const std::vector<std::vector<
 void geometryCalibration(const Resources& r, const CLImage& rgba) {
 	rgba.save(".geomcalib_input.png");
 
+	CalibDiagnostic diag;
+	diag.camera_id = r.camId;
+	diag.image_width = rgba.width;
+	diag.image_height = rgba.height;
+	diag.line_corners = r.lineCorners;
+	diag.camera_height = r.cameraHeight;
+	diag.refinement_enabled = r.geometryRefinement;
+	diag.thresholded_image_path = "img/" + rgba.name + ".pixels.png";
+	diag.lines_image_path = "img/" + rgba.name + ".lines.png";
+	diag.corner_overlay_path = "img/" + rgba.name + ".pixels.corner.png";
+	diag.refined_overlay_path = "img/" + rgba.name + ".pixels.refined.png";
+
 	cv::Mat bgr;
 	cv::cvtColor(rgba.read<RGBA>().cv, bgr, cv::COLOR_RGBA2BGR);
 	cv::Mat gray;
 	cv::cvtColor(rgba.read<RGBA>().cv, gray, cv::COLOR_RGBA2GRAY);
 
 	const int halfLineWidth = halfLineWidthEstimation(r, gray);
+	diag.half_line_width = halfLineWidth;
 	std::cout << "[Geometry calibration] Half line width: " << halfLineWidth << std::endl;
 
 	cv::Mat thresholded(gray.rows, gray.cols, CV_8UC1, 0.0);
@@ -516,6 +530,7 @@ void geometryCalibration(const Resources& r, const CLImage& rgba) {
 	cv::imwrite("img/" + rgba.name + ".pixels.png", thresholded);
 
 	const std::vector<Eigen::Vector2f> linePixels = getLinePixels(thresholded);
+	diag.line_pixel_count = (int)linePixels.size();
 
 	cv::Ptr<cv::LineSegmentDetector> detector = cv::createLineSegmentDetector();
 	cv::Mat4f linesMat;
@@ -530,10 +545,12 @@ void geometryCalibration(const Resources& r, const CLImage& rgba) {
 		if(dist(a, b) >= r.minLineSegmentLength)
 			lines.emplace_back(a, b);
 	}
+	diag.raw_line_segments = (int)lines.size();
 	std::cout << "[Geometry calibration] Line segments: " << lines.size() << std::endl;
 
 	const std::vector<CVLines> compoundLines = groupLineSegments(r, lines);
 	const CVLines mergedLines = mergeLineSegments(compoundLines);
+	diag.merged_line_count = (int)mergedLines.size();
 	std::cout << "[Geometry calibration] Lines: " << mergedLines.size() << std::endl;
 
 	std::vector<std::vector<Eigen::Vector2f>> mergedPixels(mergedLines.size());
@@ -579,6 +596,14 @@ void geometryCalibration(const Resources& r, const CLImage& rgba) {
 	int error = modelError(r, model, linePixels);
 	std::cout << "[Geometry calibration] Best model: " << model << " error " << (error/(float)linePixels.size()) << std::endl;
 
+	diag.focal_length = model.focalLength;
+	diag.position = model.pos;
+	diag.euler = model.getEuler();
+	diag.distortion_k2 = model.distortionK2;
+	diag.principal_point = model.principalPoint;
+	diag.total_error = error;
+	diag.error_rate = linePixels.empty() ? 0.0f : (float)error / (float)linePixels.size();
+
 	SSL_WrapperPacket wrapper;
 	wrapper.set_source(SSL_SOURCE_VISION_PROCESSOR);
 	wrapper.mutable_geometry()->CopyFrom(r.socket->getGeometry());
@@ -588,4 +613,6 @@ void geometryCalibration(const Resources& r, const CLImage& rgba) {
 
 	drawModel(r, thresholded, linePixels, model);
 	cv::imwrite("img/" + rgba.name + ".pixels.refined.png", thresholded);
+
+	diag.writeJson("img/" + rgba.name + ".calib.json");
 }
