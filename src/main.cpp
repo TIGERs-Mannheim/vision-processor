@@ -392,6 +392,9 @@ int main(int argc, char* argv[]) {
 			}
 		} else if(r.socket->getGeometryVersion()) {
 			geometryCalibration(r, *r.quad2rgba(channels));
+
+			if(r.debugStreamInterval > 0 && frameId % r.debugStreamInterval == 0)
+				r.quad2rgba(channels)->save(".debug." + std::to_string(r.camId) + ".jpg");
 		} else {
 			r.streamQuad(channels);
 
@@ -399,6 +402,9 @@ int main(int argc, char* argv[]) {
 				r.quad2rgba(channels)->save(".sample." + std::to_string(r.camId) + ".png");
 				std::cout << "[main] Saved sample image" << std::endl;
 			}
+
+			if(r.debugStreamInterval > 0 && frameId % r.debugStreamInterval == 0)
+				r.quad2rgba(channels)->save(".debug." + std::to_string(r.camId) + ".jpg");
 		}
 	}
 

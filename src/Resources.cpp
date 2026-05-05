@@ -120,6 +120,7 @@ Resources::Resources(const YAML::Node& config) {
 	groundTruth = debug["ground_truth"].as<std::string>("gt.yml");
 	bool waitForGeometry = debug["wait_for_geometry"].as<bool>(false);
 	debugImages = debug["debug_images"].as<bool>(false);
+	debugStreamInterval = debug["debug_stream_interval"].as<int>(0);
 
 	YAML::Node network = getOptional(config["network"]);
 	gcSocket = std::make_shared<GCSocket>(network["gc_ip"].as<std::string>("224.5.23.1"), network["gc_port"].as<int>(10003), YAML::LoadFile(config["bot_heights_file"].as<std::string>("robot-heights.yml")).as<std::map<std::string, double>>());
