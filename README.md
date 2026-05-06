@@ -12,6 +12,12 @@ The geometry publisher `geom_publisher.py` publishes the field geometry
 for all vision_processors, teams and the game controller.
 `cam_viewer.py` opens the `mpv` video player with the camera streams from the vision_processor instances.
 
+## Python wrapper
+
+`wrapper/` is a modular asyncio replacement for `geom_publisher.py` and the planned home for the browser-based calibration UI.
+Run it with `./start_wrapper.sh` (defaults to `geometry-divB.yml`).
+See [`wrapper/README.md`](wrapper/README.md) for setup, architecture, and contributing notes.
+
 
 ## Dependency installation and compilation
 
