@@ -1,9 +1,3 @@
-# For a line name definition see the SSL rules: https://robocup-ssl.github.io/ssl-rules/sslrules.html#_field_setup
-default_lines:
-  goal2goal: true
-  halfway: true
-  centercircle: true
-
 # All lengths are in mm.
 # The configuration structure below mirrors proto/ssl_vision_geometry.proto,
 # see there for a description of all parameters.
