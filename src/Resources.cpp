@@ -213,6 +213,11 @@ void Resources::applyTunables(const YAML::Node& config) {
 }
 
 void Resources::reloadConfigIfChanged() {
+	double now = getRealTime();
+	if(now - lastConfigCheckTime < 0.5)
+		return;
+	lastConfigCheckTime = now;
+
 	struct stat st{};
 	if(stat(configPath.c_str(), &st) != 0)
 		return;

@@ -113,5 +113,6 @@ public:
 private:
 	std::string configPath;
 	int64_t configMtime = 0;
+	double lastConfigCheckTime = 0.0;
 	void applyTunables(const YAML::Node& config);
 };
