@@ -2,13 +2,6 @@
 
 Inbound: parse SSL_WrapperPacket and demux to geometry.in / detection.in.
 Outbound: subscribe to wrapper_packet.out, sendto raw bytes.
-
-Socket-level details preserved from python/visionsocket.py:
-
-- IP_MULTICAST_TTL = 32 (default 1 doesn't traverse routers)
-- SO_REUSEADDR = 1 (co-host with vision_processor)
-- bind to the multicast group address (filters inbound to the joined group)
-- IP_ADD_MEMBERSHIP with INADDR_ANY (kernel default interface)
 """
 
 from __future__ import annotations
@@ -26,7 +19,7 @@ from wrapper.bus import Bus
 log = logging.getLogger("wrapper.multicast")
 
 
-class _RxProtocol(asyncio.DatagramProtocol):
+class _MulticastToBus(asyncio.DatagramProtocol):
     def __init__(self, bus: Bus) -> None:
         self._bus = bus
 
@@ -44,15 +37,34 @@ class _RxProtocol(asyncio.DatagramProtocol):
             self._bus.publish("detection.in", packet.detection)
 
 
+class _BusToMulticast:
+    def __init__(
+        self,
+        bus: Bus,
+        transport: asyncio.DatagramTransport,
+        target: tuple[str, int],
+    ) -> None:
+        self._bus = bus
+        self._transport = transport
+        self._target = target
+
+    async def run(self) -> None:
+        queue = self._bus.subscribe("wrapper_packet.out")
+        while True:
+            payload: bytes = await queue.get()
+            self._transport.sendto(payload, self._target)
+
+
 class Multicast:
     def __init__(self, bus: Bus, group: str, port: int) -> None:
         self._bus = bus
         self._group = group
         self._port = port
         self._transport: asyncio.DatagramTransport | None = None
-        self._tx_task: asyncio.Task[None] | None = None
+        self._bus_to_multicast: asyncio.Task[None] | None = None
 
     async def start(self) -> None:
+        # Join multicast
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
         sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, 32)
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -64,29 +76,32 @@ class Multicast:
         )
 
         loop = asyncio.get_running_loop()
+
+        # Start multicast -> bus task
         transport, _protocol = await loop.create_datagram_endpoint(
-            lambda: _RxProtocol(self._bus),
+            lambda: _MulticastToBus(self._bus),
             sock=sock,
         )
         self._transport = transport
-        self._tx_task = asyncio.create_task(self._tx_loop(), name="multicast-tx")
+
+        # Start bus -> multicast task
+        self._bus_to_multicast = asyncio.create_task(
+            _BusToMulticast(self._bus, transport, (self._group, self._port)).run(),
+            name="multicast-tx",
+        )
+
         log.info("multicast bound to %s:%d", self._group, self._port)
 
-    async def _tx_loop(self) -> None:
-        queue = self._bus.subscribe("wrapper_packet.out")
-        assert self._transport is not None
-        while True:
-            payload: bytes = await queue.get()
-            self._transport.sendto(payload, (self._group, self._port))
-
     async def close(self) -> None:
-        if self._tx_task is not None:
-            self._tx_task.cancel()
+        # Cancel bus -> multicast task
+        if self._bus_to_multicast is not None:
+            self._bus_to_multicast.cancel()
             try:
-                await self._tx_task
+                await self._bus_to_multicast
             except asyncio.CancelledError:
                 pass
-            self._tx_task = None
+            self._bus_to_multicast = None
+        # Cancel mutlicast -> bus task
         if self._transport is not None:
             self._transport.close()
             self._transport = None

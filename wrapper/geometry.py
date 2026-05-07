@@ -2,13 +2,8 @@
 
 Two concurrent tasks:
 - _absorb_loop: subscribe to geometry.in, replace-or-append per-camera
-  calibrations into self._wrapper.geometry.calib.
-- _publish_loop: every 1 s, publish self._wrapper.SerializeToString() on
-  wrapper_packet.out.
-
-Both run on the same event loop; mutations between awaits are atomic
-from asyncio's perspective so no locks are needed. Serialising before
-publish locks in the snapshot before the multicast adapter awaits.
+  calibrations into the SSL_WrapperPacket.
+- _publish_loop: every second, the SSL_WrapperPacket on wrapper_packet.out.
 """
 
 from __future__ import annotations
