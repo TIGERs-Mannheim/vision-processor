@@ -84,6 +84,7 @@ public:
 
 	std::string groundTruth;
 	bool debugImages;
+	int debugStreamIntervalMs;
 	bool rawFeed;
 
 	std::shared_ptr<GCSocket> gcSocket;

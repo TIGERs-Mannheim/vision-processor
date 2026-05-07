@@ -210,6 +210,7 @@ void Resources::applyTunables(const YAML::Node& config) {
 
 	YAML::Node debug = getOptional(config["debug"]);
 	debugImages = debug["debug_images"].as<bool>(false);
+	debugStreamIntervalMs = debug["debug_stream_interval_ms"].as<int>(0);
 }
 
 void Resources::reloadConfigIfChanged() {
