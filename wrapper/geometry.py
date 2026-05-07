@@ -153,11 +153,15 @@ class Geometry:
         by_id = {c.camera_id: c for c in calib}
         for camera in incoming.calib:
             existing = by_id.get(camera.camera_id)
+
+            # Initial calibration received for camera. Store it
             if existing is None:
                 calib.append(camera)
                 log.info("Added camera %d calibration", camera.camera_id)
                 continue
             incoming_bytes = camera.SerializeToString(deterministic=True)
+
+            # Don't update if nothing changed
             if existing.SerializeToString(deterministic=True) == incoming_bytes:
                 continue
             existing.CopyFrom(camera)
