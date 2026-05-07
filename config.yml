@@ -148,3 +148,5 @@ debug:
   #wait_for_geometry: false
   # Save additional debug images in img/.
   #debug_images: false
+  # Periodically overwrite img/.sample.<camId>.png while calibration isn't accepted yet, every N milliseconds. 0 disables.
+  #debug_stream_interval_ms: 0

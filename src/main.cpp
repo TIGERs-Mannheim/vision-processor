@@ -253,6 +253,7 @@ int main(int argc, char* argv[]) {
 	cl::Kernel blobList = r.openCl->compile(kernel_blobList_cl);
 
 	uint32_t frameId = 0;
+	double lastDebugSaveTime = 0.0;
 	CLArray matchArray(sizeof(CLMatch) * r.maxBlobs);
 	CLArray counter(sizeof(cl_int)*3);
 
@@ -392,12 +393,20 @@ int main(int argc, char* argv[]) {
 			}
 		} else if(r.socket->getGeometryVersion()) {
 			geometryCalibration(r, *r.quad2rgba(channels));
+
+			if(r.debugStreamIntervalMs > 0 && (realStartTime - lastDebugSaveTime) * 1000.0 >= r.debugStreamIntervalMs) {
+				r.quad2rgba(channels)->save(".sample." + std::to_string(r.camId) + ".png");
+				lastDebugSaveTime = realStartTime;
+			}
 		} else {
 			r.streamQuad(channels);
 
-			if(frameId == 100) {  // Wait for automatic gain, exposure and white balance adjustments
+			bool periodicSave = r.debugStreamIntervalMs > 0 && (realStartTime - lastDebugSaveTime) * 1000.0 >= r.debugStreamIntervalMs;
+			if(frameId == 100 || periodicSave) {  // Wait for automatic gain, exposure and white balance adjustments
 				r.quad2rgba(channels)->save(".sample." + std::to_string(r.camId) + ".png");
-				std::cout << "[main] Saved sample image" << std::endl;
+				lastDebugSaveTime = realStartTime;
+				if(frameId == 100)
+					std::cout << "[main] Saved sample image" << std::endl;
 			}
 		}
 	}
