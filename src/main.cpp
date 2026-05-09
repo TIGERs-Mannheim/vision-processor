@@ -249,7 +249,7 @@ void sig_stop(int sig_num) {
 }
 
 int main(int argc, char* argv[]) {
-	Resources r(YAML::LoadFile(argc > 1 ? argv[1] : "config.yml"));
+	Resources r(argc > 1 ? argv[1] : "config.yml");
 	cl::Kernel blobList = r.openCl->compile(kernel_blobList_cl);
 
 	uint32_t frameId = 0;
@@ -261,6 +261,7 @@ int main(int argc, char* argv[]) {
 	signal(SIGINT, sig_stop);
 	while(noSigterm) {
 		frameId++;
+		r.reloadConfigIfChanged();
 		std::shared_ptr<RawImage> img = r.camera->readImage();
 		if(img == nullptr)
 			break;

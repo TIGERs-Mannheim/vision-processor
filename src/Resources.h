@@ -37,7 +37,9 @@ typedef struct __attribute__ ((packed)) RGB {
 
 class Resources {
 public:
-	explicit Resources(const YAML::Node& config);
+	explicit Resources(const std::string& configPath);
+
+	void reloadConfigIfChanged();
 
 	std::unique_ptr<CameraDriver> camera = nullptr;
 
@@ -108,4 +110,10 @@ public:
 
 	void streamQuad(std::shared_ptr<CLImage>* channels);
 	void streamImage(CLImage& img);
+
+private:
+	std::string configPath;
+	int64_t configMtime = 0;
+	double lastConfigCheckTime = 0.0;
+	void applyTunables(const YAML::Node& config);
 };

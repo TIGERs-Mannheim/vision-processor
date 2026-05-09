@@ -14,6 +14,8 @@
      limitations under the License.
  */
 #include <yaml-cpp/yaml.h>
+#include <sys/stat.h>
+#include <iostream>
 
 #include "cl_kernels.h"
 #include "Resources.h"
@@ -65,7 +67,12 @@ static YAML::Node getOptional(const YAML::Node& node) {
 	return node.IsDefined() ? node : YAML::Node();
 }
 
-Resources::Resources(const YAML::Node& config) {
+Resources::Resources(const std::string& configPath) : configPath(configPath) {
+	YAML::Node config = YAML::LoadFile(configPath);
+	struct stat st{};
+	if(stat(configPath.c_str(), &st) == 0)
+		configMtime = (int64_t)st.st_mtim.tv_sec * 1000000000 + st.st_mtim.tv_nsec;
+
 	openCl = std::make_shared<OpenCL>();
 	camera = openCamera(CameraConfig(getOptional(config["camera"])));
 
@@ -75,19 +82,18 @@ Resources::Resources(const YAML::Node& config) {
 		exit(1);
 	}
 
-	YAML::Node thresholds = getOptional(config["thresholds"]);
-	minCircularity = thresholds["circularity"].as<double>(15.0);
-	minScore = thresholds["score"].as<double>(5.0);
-	maxBlobs = thresholds["blobs"].as<int>(2000);
-	minConfidence = thresholds["min_confidence"].as<float>(0.2f);
-	minCamEdgeDistance = thresholds["min_cam_edge_distance"].as<double>(170.0);
-	resamplingFactor = thresholds["resampling_factor"].as<float>(1.0f);
-	clippingTolerance = thresholds["clipping_tolerance"].as<float>(10.0f);
-	geometryTolerance = thresholds["geometry_tolerance"].as<float>(10.0f);
+	maxBlobs = getOptional(config["thresholds"])["blobs"].as<int>(2000);
+	geometryTolerance = getOptional(config["thresholds"])["geometry_tolerance"].as<float>(10.0f);
 
-	YAML::Node tracking = getOptional(config["tracking"]);
-	minTrackingRadius = tracking["min_tracking_radius"].as<double>(20.0);
-	maxBotAcceleration = 1000 * tracking["max_bot_acceleration"].as<double>(6.5);
+	applyTunables(config);
+
+	orange = orangeReference;
+	field = fieldReference;
+	yellow = yellowReference;
+	blue = blueReference;
+	green = greenReference;
+	pink = pinkReference;
+	fieldLineColor = fieldReference;
 
 	YAML::Node geometry = getOptional(config["geometry"]);
 	cameraAmount = geometry["camera_amount"].as<int>(1);
@@ -99,28 +105,9 @@ Resources::Resources(const YAML::Node& config) {
 	maxLineSegmentOffset = geometry["max_line_segment_offset"].as<double>(10.0);
 	maxLineSegmentAngle = geometry["max_line_segment_angle"].as<double>(3.0) * M_PI/180.0;
 
-	YAML::Node color = getOptional(config["color"]);
-	referenceForce = color["reference_force"].as<float>(0.1f);
-	historyForce = color["history_force"].as<float>(0.7f);
-	orangeReference = color["orange"].as<Eigen::Vector3i>(Eigen::Vector3i{192, 128, 64});
-	fieldReference = color["field"].as<Eigen::Vector3i>(Eigen::Vector3i{128, 128, 128});
-	yellowReference = color["yellow"].as<Eigen::Vector3i>(Eigen::Vector3i{255, 128, 0});
-	blueReference = color["blue"].as<Eigen::Vector3i>(Eigen::Vector3i{0, 128, 255});
-	greenReference = color["green"].as<Eigen::Vector3i>(Eigen::Vector3i{0, 255, 128});
-	pinkReference = color["pink"].as<Eigen::Vector3i>(Eigen::Vector3i{255, 0, 128});
-	orange = orangeReference;
-	field = fieldReference;
-	yellow = yellowReference;
-	blue = blueReference;
-	green = greenReference;
-	pink = pinkReference;
-	fieldLineColor = fieldReference;
-
 	YAML::Node debug = getOptional(config["debug"]);
 	groundTruth = debug["ground_truth"].as<std::string>("gt.yml");
 	bool waitForGeometry = debug["wait_for_geometry"].as<bool>(false);
-	debugImages = debug["debug_images"].as<bool>(false);
-	debugStreamIntervalMs = debug["debug_stream_interval_ms"].as<int>(0);
 
 	YAML::Node network = getOptional(config["network"]);
 	gcSocket = std::make_shared<GCSocket>(network["gc_ip"].as<std::string>("224.5.23.1"), network["gc_port"].as<int>(10003), YAML::LoadFile(config["bot_heights_file"].as<std::string>("robot-heights.yml")).as<std::map<std::string, double>>());
@@ -196,4 +183,55 @@ void Resources::streamImage(CLImage &img) {
 	std::shared_ptr<RawImage> nv12 = openCl->acquireNV12(img.width, img.height);
 	openCl->await(kernel, cl::EnqueueArgs(cl::NDRange(img.width, img.height)), img.image, nv12->buffer);
 	rtpStreamer->sendFrame(nv12);
+}
+
+void Resources::applyTunables(const YAML::Node& config) {
+	YAML::Node thresholds = getOptional(config["thresholds"]);
+	minCircularity = thresholds["circularity"].as<double>(15.0);
+	minScore = thresholds["score"].as<double>(5.0);
+	minConfidence = thresholds["min_confidence"].as<float>(0.2f);
+	minCamEdgeDistance = thresholds["min_cam_edge_distance"].as<double>(170.0);
+	resamplingFactor = thresholds["resampling_factor"].as<float>(1.0f);
+	clippingTolerance = thresholds["clipping_tolerance"].as<float>(10.0f);
+
+	YAML::Node tracking = getOptional(config["tracking"]);
+	minTrackingRadius = tracking["min_tracking_radius"].as<double>(20.0);
+	maxBotAcceleration = 1000 * tracking["max_bot_acceleration"].as<double>(6.5);
+
+	YAML::Node color = getOptional(config["color"]);
+	referenceForce = color["reference_force"].as<float>(0.1f);
+	historyForce = color["history_force"].as<float>(0.7f);
+	orangeReference = color["orange"].as<Eigen::Vector3i>(Eigen::Vector3i{192, 128, 64});
+	fieldReference = color["field"].as<Eigen::Vector3i>(Eigen::Vector3i{128, 128, 128});
+	yellowReference = color["yellow"].as<Eigen::Vector3i>(Eigen::Vector3i{255, 128, 0});
+	blueReference = color["blue"].as<Eigen::Vector3i>(Eigen::Vector3i{0, 128, 255});
+	greenReference = color["green"].as<Eigen::Vector3i>(Eigen::Vector3i{0, 255, 128});
+	pinkReference = color["pink"].as<Eigen::Vector3i>(Eigen::Vector3i{255, 0, 128});
+
+	YAML::Node debug = getOptional(config["debug"]);
+	debugImages = debug["debug_images"].as<bool>(false);
+	debugStreamIntervalMs = debug["debug_stream_interval_ms"].as<int>(0);
+}
+
+void Resources::reloadConfigIfChanged() {
+	double now = getRealTime();
+	if(now - lastConfigCheckTime < 0.5)
+		return;
+	lastConfigCheckTime = now;
+
+	struct stat st{};
+	if(stat(configPath.c_str(), &st) != 0)
+		return;
+	int64_t mtime = (int64_t)st.st_mtim.tv_sec * 1000000000 + st.st_mtim.tv_nsec;
+	if(mtime == configMtime)
+		return;
+	configMtime = mtime;
+
+	try {
+		YAML::Node config = YAML::LoadFile(configPath);
+		applyTunables(config);
+		std::cout << "[Resources] Reloaded tunables from " << configPath << std::endl;
+	} catch(const YAML::Exception& e) {
+		std::cerr << "[Resources] Config reload failed, keeping previous values: " << e.what() << std::endl;
+	}
 }

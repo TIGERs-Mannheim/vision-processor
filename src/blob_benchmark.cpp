@@ -112,8 +112,7 @@ static void scoreBot(const Resources& r, const CLImageMap<float>& circMap, const
 
 
 int main(int argc, char* argv[]) {
-	YAML::Node configFile = YAML::LoadFile(argc > 1 ? argv[1] : "config.yml");
-	Resources r(configFile);
+	Resources r(argc > 1 ? argv[1] : "config.yml");
 	std::vector<SSL_DetectionFrame> groundTruth = parseGroundTruth(r.groundTruth);
 	cl::Kernel scoreKernel = r.openCl->compile(kernel_blobScore_cl);
 

@@ -67,7 +67,10 @@ Installation with PIP: `pip install protobuf pyyaml`
 5. Restart the `vision_processor`s for the generation of a new sample image `img/sample.[X].png`
    and complete the `geometry` section of each camera config with it.
    Visual explanation how to determine `line_corners`: ![Line corner example](line_corners.png)
-6. Restart all `vision_processor`s to reload the config.
+6. Restart all `vision_processor`s to pick up the new `geometry` section.
+   Subsequent edits to thresholds, tracking limits and color references in `config[X].yml`
+   are picked up live (within ~0.5 s) without a restart; camera, geometry, network and stream
+   sections still require a restart.
 7. Modify `geometry[X].yml` to match your field geometry.
    (for simple use cases configuring the field size, penalty area and goal will suffice)
 8. Start `python/geom_publisher.py geometry[X].yml`.
