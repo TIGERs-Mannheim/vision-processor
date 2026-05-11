@@ -18,6 +18,8 @@ dev = [
 
 [tool.mypy]
 files = ["wrapper"]
+exclude = ["wrapper/proto/"]
+mypy_path = "wrapper"
 
 [tool.ruff]
 src = ["wrapper"]

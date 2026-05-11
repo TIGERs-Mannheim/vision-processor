@@ -27,7 +27,7 @@ Topics: `geometry.in`, `detection.in` (inbound demuxed), `wrapper_packet.out` (o
 - `ParseDict` runs strict (no `ignore_unknown_fields`). A typo in `geometry.yml` raises at startup. Don't add forgiveness.
 - `default_lines:` toggle was removed from the YAML schema — SSL field markings are always emitted. Don't add it back.
 - Two `# type: ignore[assignment]` on `SSL_FieldShapeType.Value(...)` calls are unavoidable: `types-protobuf` types `Value()` as `int` while proto enum fields are typed as the enum.
-- Generated proto bindings live at repo-root `proto/` and are imported as `from proto.* import ...`. They are *copies* of `python/proto/*` — keep both in sync if regenerated.
+- Generated proto bindings are NOT committed. `wrapper/__init__.py` runs `protoc` on first import if `wrapper/proto/ssl_vision_wrapper_pb2.py` is missing, then prepends `wrapper/` to `sys.path` so `from proto.* import ...` resolves to `wrapper/proto/`. mypy uses `mypy_path = "wrapper"` and excludes `wrapper/proto/` to mirror this.
 - `python/` scripts (`geom_publisher.py`, `cam_viewer.py`, benchmarks) are NOT covered by the wrapper's tooling. They keep running on system Python; never modify them as part of wrapper work unless explicitly asked.
 - Pre-commit hooks are scoped to `^wrapper/` for ruff. Don't widen the scope without reason — would reformat all the legacy `python/` files.
 
