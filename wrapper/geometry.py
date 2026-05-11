@@ -31,7 +31,9 @@ log = logging.getLogger("wrapper.geometry")
 PUBLISH_INTERVAL_S = 1.0
 
 
-def _generate_field_markings(wrapper: SSL_WrapperPacket, field: dict) -> None:
+def _generate_field_markings(
+    wrapper: SSL_WrapperPacket, field: dict, optional_lines: dict
+) -> None:
     lines = wrapper.geometry.field.field_lines
 
     thickness = field["line_thickness"]
@@ -54,69 +56,74 @@ def _generate_field_markings(wrapper: SSL_WrapperPacket, field: dict) -> None:
     add_line("BottomTouchLine", -half_length, -half_width, half_length, -half_width)
     add_line("LeftGoalLine", -half_length, -half_width, -half_length, half_width)
     add_line("RightGoalLine", half_length, -half_width, half_length, half_width)
-    add_line("HalfwayLine", 0, -half_width, 0, half_width)
-    add_line("CenterLine", -half_length, 0, half_length, 0)
-    add_line(
-        "LeftPenaltyStretch",
-        -penalty_length,
-        -half_penalty,
-        -penalty_length,
-        half_penalty,
-    )
-    add_line(
-        "RightPenaltyStretch",
-        penalty_length,
-        -half_penalty,
-        penalty_length,
-        half_penalty,
-    )
-    add_line(
-        "LeftFieldLeftPenaltyStretch",
-        -half_length,
-        -half_penalty,
-        -penalty_length,
-        -half_penalty,
-    )
-    add_line(
-        "LeftFieldRightPenaltyStretch",
-        -half_length,
-        half_penalty,
-        -penalty_length,
-        half_penalty,
-    )
-    add_line(
-        "RightFieldLeftPenaltyStretch",
-        penalty_length,
-        half_penalty,
-        half_length,
-        half_penalty,
-    )
-    add_line(
-        "RightFieldRightPenaltyStretch",
-        penalty_length,
-        -half_penalty,
-        half_length,
-        -half_penalty,
-    )
+    if optional_lines["halfway"]:
+        add_line("HalfwayLine", 0, -half_width, 0, half_width)
+    if optional_lines["goal2goal"]:
+        add_line("CenterLine", -half_length, 0, half_length, 0)
+    if optional_lines["penalty"]:
+        add_line(
+            "LeftPenaltyStretch",
+            -penalty_length,
+            -half_penalty,
+            -penalty_length,
+            half_penalty,
+        )
+        add_line(
+            "RightPenaltyStretch",
+            penalty_length,
+            -half_penalty,
+            penalty_length,
+            half_penalty,
+        )
+        add_line(
+            "LeftFieldLeftPenaltyStretch",
+            -half_length,
+            -half_penalty,
+            -penalty_length,
+            -half_penalty,
+        )
+        add_line(
+            "LeftFieldRightPenaltyStretch",
+            -half_length,
+            half_penalty,
+            -penalty_length,
+            half_penalty,
+        )
+        add_line(
+            "RightFieldLeftPenaltyStretch",
+            penalty_length,
+            half_penalty,
+            half_length,
+            half_penalty,
+        )
+        add_line(
+            "RightFieldRightPenaltyStretch",
+            penalty_length,
+            -half_penalty,
+            half_length,
+            -half_penalty,
+        )
 
-    arc = wrapper.geometry.field.field_arcs.add()
-    arc.name = "CenterCircle"
-    arc.type = SSL_FieldShapeType.Value(arc.name)  # type: ignore[assignment]
-    arc.center.x = 0.0
-    arc.center.y = 0.0
-    arc.radius = field["center_circle_radius"]
-    arc.a1 = 0
-    arc.a2 = math.tau
-    arc.thickness = thickness
+    if optional_lines["centercircle"]:
+        arc = wrapper.geometry.field.field_arcs.add()
+        arc.name = "CenterCircle"
+        arc.type = SSL_FieldShapeType.Value(arc.name)  # type: ignore[assignment]
+        arc.center.x = 0.0
+        arc.center.y = 0.0
+        arc.radius = field["center_circle_radius"]
+        arc.a1 = 0
+        arc.a2 = math.tau
+        arc.thickness = thickness
 
 
 def load_geometry(path: Path) -> SSL_WrapperPacket:
     with path.open("r") as f:
         config = yaml.safe_load(f)
 
+    optional_lines = config.pop("optional_field_lines")
     wrapper = SSL_WrapperPacket()
     ParseDict(config, wrapper.geometry)
-    _generate_field_markings(wrapper, config["field"])
+    _generate_field_markings(wrapper, config["field"], optional_lines)
     wrapper.source = SSL_SOURCE_VISION_PROCESSOR
     return wrapper
 

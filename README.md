@@ -119,6 +119,17 @@ adjust the reference colors under `color`.
 
 If bot detections are lost when multiple bots are in close distance (e.g. during collisions), increase `clipping_tolerance`.
 
+### Calibration is wrong on a field missing some standard lines
+
+If your physical field is missing one of the optional SSL markings (center-to-center line, halfway line, center circle, or penalty-area stretches), the calibration is fed lines that the camera cannot see and the reprojection does not match the field boundary.
+In `geometry[X].yml` set the corresponding flag under `optional_field_lines` to `false`:
+
+    optional_field_lines:
+      goal2goal: false     # set to false if your field has no end-to-end center line
+      halfway: true
+      centercircle: true
+      penalty: true
+
 ### If nothing else helps
 
 Activate `stream: raw_feed: true` in your `config[X].yml` and record the video livestream

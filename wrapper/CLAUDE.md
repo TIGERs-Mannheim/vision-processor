@@ -25,7 +25,7 @@ Topics: `geometry.in`, `detection.in` (inbound demuxed), `wrapper_packet.out` (o
 ## Gotchas
 
 - `ParseDict` runs strict (no `ignore_unknown_fields`). A typo in `geometry.yml` raises at startup. Don't add forgiveness.
-- `default_lines:` toggle was removed from the YAML schema — SSL field markings are always emitted. Don't add it back.
+- `optional_field_lines:` controls the SSL markings that may be absent on lab/exhibition carpets: `goal2goal` (CenterLine), `halfway` (HalfwayLine), `centercircle` (CenterCircle arc), `penalty` (the six penalty-area stretches). Touchlines and goal lines are always emitted. The block and all four keys are required — `load_geometry` pops the block before `ParseDict` so strict parse still rejects typos elsewhere, and missing keys raise `KeyError` rather than silently defaulting.
 - Two `# type: ignore[assignment]` on `SSL_FieldShapeType.Value(...)` calls are unavoidable: `types-protobuf` types `Value()` as `int` while proto enum fields are typed as the enum.
 - Generated proto bindings are NOT committed. `wrapper/__init__.py` runs `protoc` on first import if `wrapper/proto/ssl_vision_wrapper_pb2.py` is missing, then prepends `wrapper/` to `sys.path` so `from proto.* import ...` resolves to `wrapper/proto/`. mypy uses `mypy_path = "wrapper"` and excludes `wrapper/proto/` to mirror this.
 - `python/` scripts (`geom_publisher.py`, `cam_viewer.py`, benchmarks) are NOT covered by the wrapper's tooling. They keep running on system Python; never modify them as part of wrapper work unless explicitly asked.
