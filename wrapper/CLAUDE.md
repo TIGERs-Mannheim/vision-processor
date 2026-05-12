@@ -14,11 +14,12 @@ All run from repo root.
 
 ## Architecture
 
-Three modules glued by a watch-channel pub/sub bus:
+Four modules glued by a watch-channel pub/sub bus:
 
 - `bus.py` — every `subscribe(topic)` returns its own size-1 `asyncio.Queue`. `publish` drains-then-puts; slow subscribers see only the latest value.
 - `multicast.py` — `asyncio.DatagramProtocol` UDP. Inbound parses `SSL_WrapperPacket` and demuxes into `geometry.in` / `detection.in`. Outbound subscribes to `wrapper_packet.out` (bytes) and `sendto`s.
 - `geometry.py` — owns `geometry.yml` + in-memory `SSL_WrapperPacket`. Two tasks: `_absorb_loop` (replace-or-append calibs) and `_publish_loop` (1 Hz emit). Both share `self._wrapper`; no locks because asyncio doesn't preempt between non-`await` statements. Publisher serialises to bytes before publishing so the snapshot is locked-in before the multicast adapter awaits.
+- `websocket.py` — `websockets`-based JSON bridge. Lazy per-topic bus subscription: a channel's bus-reader task starts when the first client joins and stops when the last leaves. Each connected client owns its own size-1 outbound queue (slow clients drop intermediate frames). Read-only for now; envelope (`{"topic": ..., "data": ...}` and `{"action": ..., "topic": ...}`) is symmetric so inbound commands can be added later without breaking the wire format. Topic-to-JSON encoders live in `_TOPIC_ENCODERS`.
 
 Topics: `geometry.in`, `detection.in` (inbound demuxed), `wrapper_packet.out` (outbound bytes).
 
@@ -33,8 +34,8 @@ Topics: `geometry.in`, `detection.in` (inbound demuxed), `wrapper_packet.out` (o
 
 ## CLI flags
 
-Dash form only: `--vision-ip`, `--vision-port`. `geom_publisher.py`'s underscore form is dropped.
+Dash form only: `--vision-ip`, `--vision-port`, `--ws-host`, `--ws-port`. `geom_publisher.py`'s underscore form is dropped.
 
 ## Out-of-scope (planned but not yet built)
 
-Web UI, WebSocket bridge, `vision_processor` subprocess supervisor, calib persistence to `geometry.yml`. Each will be an additive module subscribing to the bus — don't restructure existing modules to anticipate them.
+Web UI, `vision_processor` subprocess supervisor, calib persistence to `geometry.yml`. Each will be an additive module subscribing to the bus — don't restructure existing modules to anticipate them.
