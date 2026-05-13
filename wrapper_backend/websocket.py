@@ -27,9 +27,9 @@ from websockets.asyncio.server import Server, ServerConnection, serve
 from websockets.exceptions import ConnectionClosed
 
 from proto.ssl_vision_wrapper_pb2 import SSL_WrapperPacket
-from wrapper.bus import Bus
+from wrapper_backend.bus import Bus
 
-log = logging.getLogger("wrapper.websocket")
+log = logging.getLogger("wrapper_backend.websocket")
 
 
 def _encode_wrapper_packet(payload: bytes) -> dict[str, Any]:

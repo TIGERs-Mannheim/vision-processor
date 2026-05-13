@@ -1,4 +1,4 @@
-# wrapper
+# wrapper_backend
 
 Python application that owns the field geometry and (eventually) the browser-based calibration UI for `vision_processor`. Replaces `python/geom_publisher.py` with a modular asyncio base that other modules — web server, WebSocket bridge, `vision_processor` supervisor — can plug into without touching existing code.
 
@@ -42,7 +42,7 @@ Topics:
 | `detection.in` | `SSL_DetectionFrame` (demuxed inbound) |
 | `wrapper_packet.out` | serialised `SSL_WrapperPacket` bytes |
 
-For the design rationale (why watch-channel semantics, why strict YAML parsing, why `default_lines` was removed) see `docs/superpowers/specs/2026-05-06-python-wrapper-mvp-design.md`.
+For the design rationale (why watch-channel semantics, why strict YAML parsing) see `docs/superpowers/specs/2026-05-06-python-wrapper-mvp-design.md`.
 
 ## Development
 
@@ -56,17 +56,17 @@ uv run pre-commit install     # enable git hooks
 Day-to-day:
 
 ```
-uv run mypy wrapper/
-uv run ruff check wrapper/
-uv run ruff format wrapper/
+uv run mypy wrapper_backend/
+uv run ruff check wrapper_backend/
+uv run ruff format wrapper_backend/
 ```
 
-The pre-commit hook runs ruff (`--fix` + format) scoped to `wrapper/` and mypy on every commit. Existing `python/` scripts are not subject to the new tooling and keep running against the system Python.
+The pre-commit hook runs ruff (`--fix` + format) scoped to `wrapper_backend/` and mypy on every commit. Existing `python/` scripts are not subject to the new tooling and keep running against the system Python.
 
 Type stubs for `protobuf` and `pyyaml` are dev deps. The two `# type: ignore[assignment]` on `SSL_FieldShapeType.Value(...)` calls in `geometry.py` work around an upstream `types-protobuf` stub mismatch (`Value()` is typed as returning `int` while proto enum fields are typed as the enum).
 
 ## Behavioural deltas vs `python/geom_publisher.py`
 
 - **Strict YAML parsing.** `ParseDict` runs without `ignore_unknown_fields`, so a typo in `geometry.yml` raises at startup instead of being silently dropped.
-- **No `default_lines:` block.** The standard SSL field markings (12 lines + center-circle arc) are always emitted. The old toggle was a setting that lacked an override path.
+- **`default_lines:` renamed to `optional_field_lines:`** with all four toggles required. See `wrapper_backend/CLAUDE.md` for details.
 - **Dash-form CLI flags only** (`--vision-ip`, `--vision-port`). The underscore form is dropped.

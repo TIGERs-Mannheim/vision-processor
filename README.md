@@ -14,9 +14,9 @@ for all vision_processors, teams and the game controller.
 
 ## Python wrapper
 
-`wrapper/` is a modular asyncio replacement for `geom_publisher.py` and the planned home for the browser-based calibration UI.
+`wrapper_backend/` is a modular asyncio replacement for `geom_publisher.py` and the planned home for the browser-based calibration UI.
 Run it with `./start_wrapper.sh` (defaults to `geometry-divB.yml`).
-See [`wrapper/README.md`](wrapper/README.md) for setup, architecture, and contributing notes.
+See [`wrapper_backend/README.md`](wrapper_backend/README.md) for setup, architecture, and contributing notes.
 
 
 ## Dependency installation and compilation

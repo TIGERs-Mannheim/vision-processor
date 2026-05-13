@@ -18,9 +18,9 @@ dev = [
 ]
 
 [tool.mypy]
-files = ["wrapper"]
-exclude = ["wrapper/proto/"]
-mypy_path = "wrapper"
+files = ["wrapper_backend"]
+exclude = ["wrapper_backend/proto/"]
+mypy_path = "wrapper_backend"
 
 [tool.ruff]
-src = ["wrapper"]
+src = ["wrapper_backend"]

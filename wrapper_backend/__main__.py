@@ -12,10 +12,10 @@ import asyncio
 import logging
 from pathlib import Path
 
-from wrapper.bus import Bus
-from wrapper.geometry import Geometry
-from wrapper.multicast import Multicast
-from wrapper.websocket import WebSocketServer
+from wrapper_backend.bus import Bus
+from wrapper_backend.geometry import Geometry
+from wrapper_backend.multicast import Multicast
+from wrapper_backend.websocket import WebSocketServer
 
 
 async def _main() -> None:

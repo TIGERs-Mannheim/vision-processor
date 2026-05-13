@@ -1,4 +1,4 @@
-# CLAUDE.md — wrapper
+# CLAUDE.md — wrapper_backend
 
 Async Python application replacing `python/geom_publisher.py`. Owned by uv; managed via `pyproject.toml` at repo root.
 
@@ -6,11 +6,11 @@ Async Python application replacing `python/geom_publisher.py`. Owned by uv; mana
 
 All run from repo root.
 
-- Run: `./start_wrapper.sh [geometry-X.yml]` (or `uv run python -m wrapper geometry.yml`)
-- Type check: `uv run mypy wrapper/`
-- Lint: `uv run ruff check wrapper/`
-- Format: `uv run ruff format wrapper/`
-- Pre-commit (manual run on wrapper files): `uv run pre-commit run --files wrapper/*.py`
+- Run: `./start_wrapper.sh [geometry-X.yml]` (or `uv run python -m wrapper_backend geometry.yml`)
+- Type check: `uv run mypy wrapper_backend/`
+- Lint: `uv run ruff check wrapper_backend/`
+- Format: `uv run ruff format wrapper_backend/`
+- Pre-commit (manual run on wrapper files): `uv run pre-commit run --files wrapper_backend/*.py`
 
 ## Architecture
 
@@ -28,9 +28,9 @@ Topics: `geometry.in`, `detection.in` (inbound demuxed), `wrapper_packet.out` (o
 - `ParseDict` runs strict (no `ignore_unknown_fields`). A typo in `geometry.yml` raises at startup. Don't add forgiveness.
 - `optional_field_lines:` controls the SSL markings that may be absent on lab/exhibition carpets: `goal2goal` (CenterLine), `halfway` (HalfwayLine), `centercircle` (CenterCircle arc), `penalty` (the six penalty-area stretches). Touchlines and goal lines are always emitted. The block and all four keys are required — `load_geometry` pops the block before `ParseDict` so strict parse still rejects typos elsewhere, and missing keys raise `KeyError` rather than silently defaulting.
 - Two `# type: ignore[assignment]` on `SSL_FieldShapeType.Value(...)` calls are unavoidable: `types-protobuf` types `Value()` as `int` while proto enum fields are typed as the enum.
-- Generated proto bindings are NOT committed. `wrapper/__init__.py` runs `protoc` on first import if `wrapper/proto/ssl_vision_wrapper_pb2.py` is missing, then prepends `wrapper/` to `sys.path` so `from proto.* import ...` resolves to `wrapper/proto/`. mypy uses `mypy_path = "wrapper"` and excludes `wrapper/proto/` to mirror this.
+- Generated proto bindings are NOT committed. `wrapper_backend/__init__.py` runs `protoc` on first import if `wrapper_backend/proto/ssl_vision_wrapper_pb2.py` is missing, then prepends `wrapper_backend/` to `sys.path` so `from proto.* import ...` resolves to `wrapper_backend/proto/`. mypy uses `mypy_path = "wrapper_backend"` and excludes `wrapper_backend/proto/` to mirror this.
 - `python/` scripts (`geom_publisher.py`, `cam_viewer.py`, benchmarks) are NOT covered by the wrapper's tooling. They keep running on system Python; never modify them as part of wrapper work unless explicitly asked.
-- Pre-commit hooks are scoped to `^wrapper/` for ruff. Don't widen the scope without reason — would reformat all the legacy `python/` files.
+- Pre-commit hooks are scoped to `^wrapper_backend/` for ruff. Don't widen the scope without reason — would reformat all the legacy `python/` files.
 
 ## CLI flags
 
