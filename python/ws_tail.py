@@ -1,6 +1,6 @@
 """Tail a wrapper websocket channel. Usage:
 
-uv run python tools/ws_tail.py [--url ws://127.0.0.1:8765] [--topic wrapper_packet.out]
+uv run python python/ws_tail.py [--url ws://127.0.0.1:8765] [--topic wrapper_packet.out]
 """
 
 from __future__ import annotations
