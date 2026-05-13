@@ -12,6 +12,12 @@ The geometry publisher `geom_publisher.py` publishes the field geometry
 for all vision_processors, teams and the game controller.
 `cam_viewer.py` opens the `mpv` video player with the camera streams from the vision_processor instances.
 
+## Python wrapper
+
+`wrapper/` is a modular asyncio replacement for `geom_publisher.py` and the planned home for the browser-based calibration UI.
+Run it with `./start_wrapper.sh` (defaults to `geometry-divB.yml`).
+See [`wrapper/README.md`](wrapper/README.md) for setup, architecture, and contributing notes.
+
 
 ## Dependency installation and compilation
 
@@ -115,6 +121,17 @@ adjust the reference colors under `color`.
 ### Bot detections are lost in close distance
 
 If bot detections are lost when multiple bots are in close distance (e.g. during collisions), increase `clipping_tolerance`.
+
+### Calibration is wrong on a field missing some standard lines
+
+If your physical field is missing one of the optional SSL markings (center-to-center line, halfway line, center circle, or penalty-area stretches), the calibration is fed lines that the camera cannot see and the reprojection does not match the field boundary.
+In `geometry[X].yml` set the corresponding flag under `optional_field_lines` to `false`:
+
+    optional_field_lines:
+      goal2goal: false     # set to false if your field has no end-to-end center line
+      halfway: true
+      centercircle: true
+      penalty: true
 
 ### If nothing else helps
 
