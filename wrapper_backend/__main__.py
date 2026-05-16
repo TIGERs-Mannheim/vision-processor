@@ -14,7 +14,7 @@ from pathlib import Path
 
 from aiohttp import web
 
-from wrapper_backend import websocket
+from wrapper_backend import snapshot, websocket
 from wrapper_backend.bus import Bus
 from wrapper_backend.geometry import Geometry
 from wrapper_backend.multicast import Multicast
@@ -29,6 +29,7 @@ async def _main() -> None:
     parser.add_argument("--vision-port", type=int, default=10006)
     parser.add_argument("--host", default="0.0.0.0")
     parser.add_argument("--port", type=int, default=8765)
+    parser.add_argument("--img-dir", type=Path, default=Path("img"))
     args = parser.parse_args()
 
     bus = Bus()
@@ -37,6 +38,7 @@ async def _main() -> None:
 
     http_app = web.Application()
     websocket.register(http_app, bus)
+    snapshot.register(http_app, args.img_dir)
 
     http_runner = web.AppRunner(http_app)
     await http_runner.setup()
