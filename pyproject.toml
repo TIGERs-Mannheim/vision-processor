@@ -3,9 +3,9 @@ name = "vision-wrapper"
 version = "0.1.0"
 requires-python = ">=3.12"
 dependencies = [
+    "aiohttp>=3.10",
     "protobuf>=7.34.1",
     "pyyaml>=6.0.3",
-    "websockets>=16.0",
 ]
 
 [dependency-groups]

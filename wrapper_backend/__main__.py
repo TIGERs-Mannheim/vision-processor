@@ -12,10 +12,14 @@ import asyncio
 import logging
 from pathlib import Path
 
+from aiohttp import web
+
+from wrapper_backend import websocket
 from wrapper_backend.bus import Bus
 from wrapper_backend.geometry import Geometry
 from wrapper_backend.multicast import Multicast
-from wrapper_backend.websocket import WebSocketServer
+
+log = logging.getLogger("wrapper_backend")
 
 
 async def _main() -> None:
@@ -23,21 +27,28 @@ async def _main() -> None:
     parser.add_argument("geometry", type=Path, help="geometry.yml path")
     parser.add_argument("--vision-ip", default="224.5.23.2")
     parser.add_argument("--vision-port", type=int, default=10006)
-    parser.add_argument("--ws-host", default="0.0.0.0")
-    parser.add_argument("--ws-port", type=int, default=8765)
+    parser.add_argument("--host", default="0.0.0.0")
+    parser.add_argument("--port", type=int, default=8765)
     args = parser.parse_args()
 
     bus = Bus()
     multicast = Multicast(bus, args.vision_ip, args.vision_port)
     geometry = Geometry(bus, args.geometry)
-    websocket = WebSocketServer(bus, args.ws_host, args.ws_port)
+
+    http_app = web.Application()
+    websocket.register(http_app, bus)
+
+    http_runner = web.AppRunner(http_app)
+    await http_runner.setup()
+    http_site = web.TCPSite(http_runner, args.host, args.port)
+    await http_site.start()
+    log.info("http+ws listening on %s:%d", args.host, args.port)
 
     try:
         await multicast.start()
-        await websocket.start()
         await geometry.run()
     finally:
-        await websocket.close()
+        await http_runner.cleanup()
         await multicast.close()
 
 
