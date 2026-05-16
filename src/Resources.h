@@ -21,6 +21,7 @@
 #include <yaml-cpp/node/node.h>
 #include "driver/cameradriver.h"
 #include "rtpstreamer.h"
+#include "snapshotwriter.h"
 #include "udpsocket.h"
 #include "Perspective.h"
 #include "opencl.h"
@@ -92,6 +93,7 @@ public:
 	std::shared_ptr<Perspective> perspective;
 	std::shared_ptr<OpenCL> openCl;
 	std::shared_ptr<RTPStreamer> rtpStreamer;
+	std::shared_ptr<SnapshotWriter> snapshotWriter;
 
 	cl::Kernel raw2quadKernel;
 	cl::Kernel resampling;

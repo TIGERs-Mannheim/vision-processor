@@ -392,6 +392,11 @@ int main(int argc, char* argv[]) {
 						break;
 				}
 			}
+
+			if(r.debugStreamIntervalMs > 0 && (realStartTime - lastDebugSaveTime) * 1000.0 >= r.debugStreamIntervalMs) {
+				r.snapshotWriter->offer(r.quad2rgba(channels), "img/sample." + std::to_string(r.camId) + ".jpg");
+				lastDebugSaveTime = realStartTime;
+			}
 		} else if(r.socket->getGeometryVersion()) {
 			geometryCalibration(r, *r.quad2rgba(channels));
 
