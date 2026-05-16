@@ -1,8 +1,21 @@
 <script lang="ts">
+  import { onMount } from "svelte";
   import { connectionState, topic } from "./lib/wrapper-bus";
 
   let subscribed = $state(false);
   const wrapperPacket = topic<Record<string, unknown>>("wrapper_packet.out");
+
+  const snapshotBase = `http://${location.hostname}:8765/snapshot/0`;
+  let cacheBuster = $state(0);
+
+  onMount(() => {
+    const intervalId = setInterval(() => {
+      cacheBuster = Date.now();
+    }, 1000);
+    return () => {
+      clearInterval(intervalId);
+    };
+  });
 
   function toggleSubscribe(): void {
     subscribed = !subscribed;
@@ -16,6 +29,11 @@
       {$connectionState}
     </span>
   </header>
+
+  <section>
+    <h2>Camera 0</h2>
+    <img src={`${snapshotBase}?t=${String(cacheBuster)}`} alt="camera 0 quad" />
+  </section>
 
   <section>
     <button onclick={toggleSubscribe}>
@@ -77,6 +95,17 @@
   .badge[data-state="closed"] {
     background: #f8d7da;
     color: #721c24;
+  }
+
+  img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+  }
+
+  h2 {
+    font-size: 1rem;
+    margin: 0 0 0.5rem;
   }
 
   pre {
