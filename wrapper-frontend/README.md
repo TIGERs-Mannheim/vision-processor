@@ -2,10 +2,10 @@
 
 Browser UI for the vision-processor wrapper. Svelte 5 + TypeScript + Vite.
 
-Currently a skeleton: connects to `wrapper_backend`'s WebSocket on
-`ws://<host>:8765`, subscribes to `wrapper_packet.out`, and dumps each
-frame as JSON. Proves the end-to-end pipeline before any visualization
-work begins.
+Currently a skeleton: connects to `wrapper_backend`'s WebSocket at
+`ws://<host>:8765/ws`, subscribes to `wrapper_packet.out` (raw JSON
+dump), and shows the latest debug-quad JPEG from `GET /snapshot/0`
+refreshed at 1 Hz.
 
 ## Run
 
@@ -32,10 +32,11 @@ to start receiving frames.
   reader, unsubscribes when the last reader goes away. Reconnects on
   close with exponential backoff (1s → 30s).
 - `src/App.svelte` — placeholder UI: connection badge + subscribe
-  toggle + JSON dump.
+  toggle + JSON dump + `<img>` polling `/snapshot/0` once per second
+  with a cache-busting `?t=<ms>` query.
 - `src/main.ts` — mounts `App` into `#app`.
 
-The wire format mirrors `wrapper_backend/websocket.py`'s envelope:
+The WS wire format mirrors `wrapper_backend/websocket.py`'s envelope:
 
 ```jsonc
 // client -> server
@@ -45,6 +46,11 @@ The wire format mirrors `wrapper_backend/websocket.py`'s envelope:
 { "topic": "wrapper_packet.out", "data": { ... } }
 { "error": "unknown topic", "topic": "..." }
 ```
+
+The snapshot is a plain `GET /snapshot/<cam_id>` returning `image/jpeg`
+(or 404 if the C++ side hasn't written one yet). `<img>` tags don't
+trigger CORS for display, so cross-origin `:5173` -> `:8765` works in
+dev without a Vite proxy.
 
 ## Scripts
 
