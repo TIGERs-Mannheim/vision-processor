@@ -16,6 +16,7 @@
 #pragma once
 
 #include <condition_variable>
+#include <map>
 #include <memory>
 #include <mutex>
 #include <string>
@@ -29,6 +30,10 @@ public:
 	SnapshotWriter();
 	~SnapshotWriter();
 
+	// Hand an image off for asynchronous JPEG encoding. Per-path
+	// watch-channel semantics: offering twice for the same path before
+	// the worker drains keeps only the latest. Different paths don't
+	// interfere with each other.
 	void offer(std::shared_ptr<CLImage> image, std::string path);
 
 private:
@@ -36,8 +41,7 @@ private:
 
 	std::thread worker;
 	std::mutex mu;
-	std::condition_variable cv;
-	std::shared_ptr<CLImage> slot = nullptr;
-	std::string slotPath;
+	std::condition_variable signal;
+	std::map<std::string, std::shared_ptr<CLImage>> pending;
 	bool stop = false;
 };

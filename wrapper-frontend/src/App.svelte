@@ -6,6 +6,12 @@
   const wrapperPacket = topic<Record<string, unknown>>("wrapper_packet.out");
 
   const snapshotBase = `http://${location.hostname}:8765/snapshot/0`;
+  const views: readonly { id: string; label: string }[] = [
+    { id: "raw", label: "Raw camera data" },
+    { id: "flat", label: "Reprojected color delta" },
+    { id: "gradient", label: "Gradient dot product" },
+    { id: "blob", label: "Blob circularity score" },
+  ];
   let cacheBuster = $state(0);
 
   onMount(() => {
@@ -32,7 +38,17 @@
 
   <section>
     <h2>Camera 0</h2>
-    <img src={`${snapshotBase}?t=${String(cacheBuster)}`} alt="camera 0 quad" />
+    <div class="grid">
+      {#each views as view (view.id)}
+        <figure>
+          <img
+            src={`${snapshotBase}/${view.id}?t=${String(cacheBuster)}`}
+            alt={view.label}
+          />
+          <figcaption>{view.label}</figcaption>
+        </figure>
+      {/each}
+    </div>
   </section>
 
   <section>
@@ -97,10 +113,27 @@
     color: #721c24;
   }
 
+  .grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+  }
+
+  figure {
+    margin: 0;
+  }
+
   img {
-    max-width: 100%;
+    width: 100%;
     height: auto;
     display: block;
+    background: #f5f5f5;
+  }
+
+  figcaption {
+    font-size: 0.75rem;
+    color: #666;
+    margin-top: 0.25rem;
   }
 
   h2 {

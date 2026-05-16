@@ -394,7 +394,11 @@ int main(int argc, char* argv[]) {
 			}
 
 			if(r.debugStreamIntervalMs > 0 && (realStartTime - lastDebugSaveTime) * 1000.0 >= r.debugStreamIntervalMs) {
-				r.snapshotWriter->offer(r.quad2rgba(channels), "img/sample." + std::to_string(r.camId) + ".jpg");
+				const std::string prefix = "img/sample." + std::to_string(r.camId) + ".";
+				r.snapshotWriter->offer(r.quad2rgba(channels), prefix + "raw.jpg");
+				r.snapshotWriter->offer(flat, prefix + "flat.jpg");
+				r.snapshotWriter->offer(gradDot, prefix + "gradient.jpg");
+				r.snapshotWriter->offer(blobCenter, prefix + "blob.jpg");
 				lastDebugSaveTime = realStartTime;
 			}
 		} else if(r.socket->getGeometryVersion()) {

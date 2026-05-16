@@ -15,6 +15,8 @@ from aiohttp import web
 
 def register(http_app: web.Application, img_dir: Path) -> None:
     async def handler(request: web.Request) -> web.FileResponse:
-        return web.FileResponse(img_dir / f"sample.{request.match_info['cam_id']}.jpg")
+        cam_id = request.match_info["cam_id"]
+        view = request.match_info["view"]
+        return web.FileResponse(img_dir / f"sample.{cam_id}.{view}.jpg")
 
-    http_app.router.add_get("/snapshot/{cam_id}", handler)
+    http_app.router.add_get("/snapshot/{cam_id}/{view}", handler)
