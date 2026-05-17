@@ -16,3 +16,15 @@ repos:
         types: [python]
         files: ^wrapper_backend/
         pass_filenames: false
+      - id: eslint
+        name: eslint
+        entry: npm --prefix wrapper-frontend run lint
+        language: system
+        files: ^wrapper-frontend/
+        pass_filenames: false
+      - id: prettier
+        name: prettier
+        entry: npm --prefix wrapper-frontend run format:check
+        language: system
+        files: ^wrapper-frontend/
+        pass_filenames: false
