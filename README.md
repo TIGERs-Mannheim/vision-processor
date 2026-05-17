@@ -134,6 +134,10 @@ In `geometry[X].yml` set the corresponding flag under `optional_field_lines` to 
       centercircle: true
       penalty: true
 
+### Bottom half of frames looks smeared / blurred (H.264 network source)
+
+H.264 RTSP streams can silently produce corrupted frames on slower or throttled machines. Switch the source to MJPEG, or run on a machine with a real OpenCL GPU.
+
 ### If nothing else helps
 
 Activate `stream: raw_feed: true` in your `config[X].yml` and record the video livestream
