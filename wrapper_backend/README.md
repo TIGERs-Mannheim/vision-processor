@@ -15,40 +15,46 @@ The wrapper loads the given `geometry-*.yml`, broadcasts an `SSL_WrapperPacket` 
 
 ## Architecture
 
-```
-                  ┌─────────┐
-                  │  Bus    │   in-process pub/sub
-                  └─────────┘
-                     ▲ ▼
-        ┌────────────┴─┴──────────────┐
-        │                              │
-        ▼                              ▼
-   multicast.py  ── geometry.in ──► geometry.py
-   (UDP I/O)    ── detection.in ─►   (owns geometry.yml +
-                                      in-memory wrapper)
-                ◄ wrapper_packet ──
-                       .out             ▲
-                                        │
-                              websocket.py   snapshot.py
-                              (GET /ws)      (GET /snapshot/<id>)
-                                        │           │
-                                        └─── aiohttp Application :8765
-```
+The wrapper is a single asyncio process listening on `:8765`. Inside,
+modules don't call each other directly; they talk through an in-process
+pub/sub bus. From the outside, this is what it does:
 
-- `bus.py` — watch-channel pub/sub. Each subscriber gets its own size-1 `asyncio.Queue`. On publish, every subscriber's queue is drained-then-filled, so slow subscribers see only the latest message and never block publishers.
-- `multicast.py` — async-native UDP via `asyncio.DatagramProtocol`. Inbound parses `SSL_WrapperPacket` and demuxes into typed topics. Outbound subscribes to `wrapper_packet.out` and sends bytes.
-- `geometry.py` — owns the in-memory `SSL_WrapperPacket`. Two concurrent tasks: one absorbs incoming calibrations into it (replace-or-append, never remove); the other emits a serialised snapshot at 1 Hz.
-- `websocket.py` — aiohttp WS at `/ws`. Lazy per-topic bus subscription; per-client size-1 outbox; JSON envelope. See `wrapper-frontend/src/lib/wrapper-bus.ts` for the client side.
-- `snapshot.py` — aiohttp `GET /snapshot/{cam_id}/{view}`. Globs `img/{cam_id}.{view}.*` and streams the most-recently-modified match (written by the C++ `SnapshotWriter`). Returns 404 when nothing matches. `img/` is hardcoded on both sides — the C++ side writes there too, relative to its cwd.
-- `__main__.py` — CLI, logging, builds the aiohttp Application and wires every module onto it and the bus.
+- Listens for SSL vision multicast traffic on UDP and parses it.
+- Folds incoming per-camera calibrations into one merged geometry state.
+- Re-broadcasts that merged state back onto the multicast group at 1 Hz.
+- Exposes the same internal topics to the browser frontend over WebSocket.
+- Serves the debug images that the C++ side writes to disk.
 
-Topics:
+### Files
 
-| Topic | Payload |
-|---|---|
-| `geometry.in` | `SSL_GeometryData` (demuxed inbound) |
-| `detection.in` | `SSL_DetectionFrame` (demuxed inbound) |
-| `wrapper_packet.out` | serialised `SSL_WrapperPacket` bytes |
+Each file is one module. In rough "outside-in" order:
+
+- **`multicast.py`** — the UDP I/O layer. Receives `SSL_WrapperPacket`s
+  from the multicast group, splits them into geometry / detection topics,
+  and sends our own merged packets back out.
+- **`geometry.py`** — the brains. Holds one in-memory `SSL_WrapperPacket`,
+  replaces or appends per-camera calibrations as they arrive, and emits
+  the current state once a second.
+- **`websocket.py`** — the WebSocket endpoint at `/ws`. Lets browser
+  clients subscribe to any bus topic and receive frames as JSON. Client
+  side lives in `wrapper-frontend/src/lib/wrapper-bus.ts`.
+- **`snapshot.py`** — the debug-image endpoint at
+  `/snapshot/<cam_id>/<view>`. Serves the JPEGs that the C++
+  `SnapshotWriter` drops into `img/`. `img/` is hardcoded on both sides
+  (relative to each process's cwd).
+- **`bus.py`** — the pub/sub bus everything else talks through. Each
+  subscriber gets its own size-1 queue, so slow readers see only the
+  latest message and never block publishers.
+- **`__main__.py`** — entry point. Parses CLI args, sets up logging, and
+  wires all the modules above onto one aiohttp app.
+
+### Topics on the bus
+
+| Topic | Payload | Written by | Read by |
+|---|---|---|---|
+| `geometry.in` | `SSL_GeometryData` | `multicast.py` (inbound) | `geometry.py` |
+| `detection.in` | `SSL_DetectionFrame` | `multicast.py` (inbound) | (none yet) |
+| `wrapper_packet.out` | serialised `SSL_WrapperPacket` bytes | `geometry.py` | `multicast.py` (outbound), `websocket.py` |
 
 ## Development
 
