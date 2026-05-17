@@ -5,21 +5,32 @@
   let subscribed = $state(false);
   const wrapperPacket = topic<Record<string, unknown>>("wrapper_packet.out");
 
-  const snapshotBase = `http://${location.hostname}:8765/snapshot/0`;
-  const views: readonly { id: string; label: string }[] = [
-    { id: "raw", label: "Raw camera data" },
-    { id: "flat", label: "Reprojected color delta" },
-    { id: "gradient", label: "Gradient dot product" },
-    { id: "blob", label: "Blob circularity score" },
-  ];
+  const apiBase = `http://${location.hostname}:8765`;
+  interface Snapshot {
+    cam_id: string;
+    view: string;
+  }
+  let snapshots = $state<Snapshot[]>([]);
   let cacheBuster = $state(0);
 
+  async function refreshSnapshotList(): Promise<void> {
+    try {
+      const response = await fetch(`${apiBase}/snapshots`);
+      if (response.ok) snapshots = (await response.json()) as Snapshot[];
+    } catch {
+      // ignore: next tick will retry
+    }
+  }
+
   onMount(() => {
-    const intervalId = setInterval(() => {
+    void refreshSnapshotList();
+    const listId = setInterval(() => void refreshSnapshotList(), 5000);
+    const imgId = setInterval(() => {
       cacheBuster = Date.now();
     }, 1000);
     return () => {
-      clearInterval(intervalId);
+      clearInterval(listId);
+      clearInterval(imgId);
     };
   });
 
@@ -37,18 +48,22 @@
   </header>
 
   <section>
-    <h2>Camera 0</h2>
-    <div class="grid">
-      {#each views as view (view.id)}
-        <figure>
-          <img
-            src={`${snapshotBase}/${view.id}?t=${String(cacheBuster)}`}
-            alt={view.label}
-          />
-          <figcaption>{view.label}</figcaption>
-        </figure>
-      {/each}
-    </div>
+    <h2>Snapshots</h2>
+    {#if snapshots.length === 0}
+      <p class="hint">No images in img/ yet.</p>
+    {:else}
+      <div class="grid">
+        {#each snapshots as snap (`${snap.cam_id}.${snap.view}`)}
+          <figure>
+            <img
+              src={`${apiBase}/snapshot/${snap.cam_id}/${snap.view}?t=${String(cacheBuster)}`}
+              alt={`cam ${snap.cam_id} ${snap.view}`}
+            />
+            <figcaption>cam {snap.cam_id} / {snap.view}</figcaption>
+          </figure>
+        {/each}
+      </div>
+    {/if}
   </section>
 
   <section>

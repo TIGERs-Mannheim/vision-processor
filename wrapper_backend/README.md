@@ -38,10 +38,11 @@ Each file is one module. In rough "outside-in" order:
 - **`websocket.py`** — the WebSocket endpoint at `/ws`. Lets browser
   clients subscribe to any bus topic and receive frames as JSON. Client
   side lives in `wrapper-frontend/src/lib/wrapper-bus.ts`.
-- **`snapshot.py`** — the debug-image endpoint at
-  `/snapshot/<cam_id>/<view>`. Serves the JPEGs that the C++
-  `SnapshotWriter` drops into `img/`. `img/` is hardcoded on both sides
-  (relative to each process's cwd).
+- **`snapshot.py`** — the debug-image endpoints. `GET /snapshots`
+  returns the list of `{cam_id, view}` entries currently on disk;
+  `GET /snapshot/<cam_id>/<view>` serves the JPEG/PNG itself. Files are
+  written by the C++ `SnapshotWriter` into `img/`, which is hardcoded on
+  both sides (relative to each process's cwd).
 - **`bus.py`** — the pub/sub bus everything else talks through. Each
   subscriber gets its own size-1 queue, so slow readers see only the
   latest message and never block publishers.

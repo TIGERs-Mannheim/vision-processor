@@ -3,10 +3,10 @@
 Browser UI for the vision-processor wrapper. Svelte 5 + TypeScript + Vite.
 
 Currently a skeleton: connects to `wrapper_backend`'s WebSocket at
-`ws://<host>:8765/ws` and shows a 2x2 grid of debug views (raw, flat,
-gradient, blob) for camera 0, polling `GET /snapshot/0/<view>` once per
-second. A separate dev panel lets you subscribe to `wrapper_packet.out`
-and see the raw JSON.
+`ws://<host>:8765/ws`, asks the backend (via `GET /snapshots`) which
+debug images currently exist on disk, and renders an `<img>` for each
+one, refreshed once per second. A separate dev panel lets you subscribe
+to `wrapper_packet.out` and see the raw JSON.
 
 ## Run
 
@@ -22,9 +22,9 @@ npm install
 npm run dev
 ```
 
-Open <http://localhost:5173>. The four debug views start loading
-immediately; click "Subscribe to wrapper_packet.out" to also see the
-raw JSON frames.
+Open <http://localhost:5173>. Whatever debug images the C++ side has
+written to `img/` will appear in the grid; click "Subscribe to
+wrapper_packet.out" to also see the raw JSON frames.
 
 ## Architecture
 
@@ -33,10 +33,11 @@ raw JSON frames.
   store of the latest message). Subscribes to a topic lazily on first
   reader, unsubscribes when the last reader goes away. Reconnects on
   close with exponential backoff (1s → 30s).
-- `src/App.svelte` — placeholder UI: connection badge + a 2x2 grid of
-  four `<img>` tags polling `/snapshot/0/{raw,flat,gradient,blob}` once
-  per second with a cache-busting `?t=<ms>` query, plus a dev panel
-  with a subscribe toggle + JSON dump for `wrapper_packet.out`.
+- `src/App.svelte` — placeholder UI: connection badge + a grid of
+  `<img>` tags, one per entry returned by `GET /snapshots`. The list is
+  refreshed every 5 s; each `<img>` is refreshed once per second via a
+  cache-busting `?t=<ms>` query. Plus a dev panel with a subscribe
+  toggle + JSON dump for `wrapper_packet.out`.
 - `src/main.ts` — mounts `App` into `#app`.
 
 The WS wire format mirrors `wrapper_backend/websocket.py`'s envelope:
@@ -50,10 +51,11 @@ The WS wire format mirrors `wrapper_backend/websocket.py`'s envelope:
 { "error": "unknown topic", "topic": "..." }
 ```
 
-The snapshot is a plain `GET /snapshot/<cam_id>/<view>` returning
-`image/jpeg` (or 404 if the C++ side hasn't written one yet). `<img>`
-tags don't trigger CORS for display, so cross-origin `:5173` -> `:8765`
-works in dev without a Vite proxy.
+Snapshot endpoints are plain HTTP: `GET /snapshots` returns the list of
+available `{cam_id, view}` entries as JSON; `GET /snapshot/<cam_id>/<view>`
+returns the actual `image/jpeg` or `image/png` (or 404 if missing).
+`<img>` tags don't trigger CORS for display, so cross-origin `:5173` ->
+`:8765` works in dev without a Vite proxy.
 
 ## Scripts
 
