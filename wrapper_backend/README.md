@@ -50,8 +50,6 @@ Topics:
 | `detection.in` | `SSL_DetectionFrame` (demuxed inbound) |
 | `wrapper_packet.out` | serialised `SSL_WrapperPacket` bytes |
 
-For the design rationale (why watch-channel semantics, why strict YAML parsing) see `docs/superpowers/specs/2026-05-06-python-wrapper-mvp-design.md`.
-
 ## Development
 
 Project is managed by [uv](https://astral.sh/uv). On a fresh clone:

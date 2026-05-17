@@ -3,9 +3,10 @@
 Browser UI for the vision-processor wrapper. Svelte 5 + TypeScript + Vite.
 
 Currently a skeleton: connects to `wrapper_backend`'s WebSocket at
-`ws://<host>:8765/ws`, subscribes to `wrapper_packet.out` (raw JSON
-dump), and shows the latest debug-quad JPEG from `GET /snapshot/0`
-refreshed at 1 Hz.
+`ws://<host>:8765/ws` and shows a 2x2 grid of debug views (raw, flat,
+gradient, blob) for camera 0, polling `GET /snapshot/0/<view>` once per
+second. A separate dev panel lets you subscribe to `wrapper_packet.out`
+and see the raw JSON.
 
 ## Run
 
@@ -21,8 +22,9 @@ npm install
 npm run dev
 ```
 
-Open <http://localhost:5173>. Click "Subscribe to wrapper_packet.out"
-to start receiving frames.
+Open <http://localhost:5173>. The four debug views start loading
+immediately; click "Subscribe to wrapper_packet.out" to also see the
+raw JSON frames.
 
 ## Architecture
 
@@ -31,9 +33,10 @@ to start receiving frames.
   store of the latest message). Subscribes to a topic lazily on first
   reader, unsubscribes when the last reader goes away. Reconnects on
   close with exponential backoff (1s → 30s).
-- `src/App.svelte` — placeholder UI: connection badge + subscribe
-  toggle + JSON dump + `<img>` polling `/snapshot/0` once per second
-  with a cache-busting `?t=<ms>` query.
+- `src/App.svelte` — placeholder UI: connection badge + a 2x2 grid of
+  four `<img>` tags polling `/snapshot/0/{raw,flat,gradient,blob}` once
+  per second with a cache-busting `?t=<ms>` query, plus a dev panel
+  with a subscribe toggle + JSON dump for `wrapper_packet.out`.
 - `src/main.ts` — mounts `App` into `#app`.
 
 The WS wire format mirrors `wrapper_backend/websocket.py`'s envelope:
@@ -47,10 +50,10 @@ The WS wire format mirrors `wrapper_backend/websocket.py`'s envelope:
 { "error": "unknown topic", "topic": "..." }
 ```
 
-The snapshot is a plain `GET /snapshot/<cam_id>` returning `image/jpeg`
-(or 404 if the C++ side hasn't written one yet). `<img>` tags don't
-trigger CORS for display, so cross-origin `:5173` -> `:8765` works in
-dev without a Vite proxy.
+The snapshot is a plain `GET /snapshot/<cam_id>/<view>` returning
+`image/jpeg` (or 404 if the C++ side hasn't written one yet). `<img>`
+tags don't trigger CORS for display, so cross-origin `:5173` -> `:8765`
+works in dev without a Vite proxy.
 
 ## Scripts
 

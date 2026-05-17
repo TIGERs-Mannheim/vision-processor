@@ -71,7 +71,7 @@ Installation with PIP: `pip install protobuf pyyaml`
 3. Start `build/vision_processor config[X].yml` for each camera.
 4. Tune the orientation and position of each camera.
    You can view the camera feeds with `python/cam_viewer.py --cameras <X>`.
-5. Restart the `vision_processor`s for the generation of a new sample image `img/sample.[X].png`
+5. Restart the `vision_processor`s for the generation of a new sample image `img/[X].raw.jpg`
    and complete the `geometry` section of each camera config with it.
    Visual explanation how to determine `line_corners`: ![Line corner example](line_corners.png)
 6. Restart all `vision_processor`s to pick up the new `geometry` section.

@@ -2,7 +2,7 @@
 
 Run with:
 
-    uv run python -m wrapper geometry.yml
+    uv run python -m wrapper_backend geometry.yml
 """
 
 from __future__ import annotations
