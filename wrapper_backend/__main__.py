@@ -12,6 +12,8 @@ import asyncio
 import logging
 from pathlib import Path
 
+from collections.abc import Awaitable, Callable
+
 from aiohttp import web
 
 from wrapper_backend import snapshot, websocket
@@ -20,6 +22,18 @@ from wrapper_backend.geometry import Geometry
 from wrapper_backend.multicast import Multicast
 
 log = logging.getLogger("wrapper_backend")
+
+
+@web.middleware
+async def _cors_middleware(
+    request: web.Request,
+    handler: Callable[[web.Request], Awaitable[web.StreamResponse]],
+) -> web.StreamResponse:
+    # Dev-mode wide-open CORS so the Vite dev server on :5173 can call
+    # /snapshots and /ws from a different origin. Tighten before prod.
+    response = await handler(request)
+    response.headers["Access-Control-Allow-Origin"] = "*"
+    return response
 
 
 async def _main() -> None:
@@ -35,7 +49,7 @@ async def _main() -> None:
     multicast = Multicast(bus, args.vision_ip, args.vision_port)
     geometry = Geometry(bus, args.geometry)
 
-    http_app = web.Application()
+    http_app = web.Application(middlewares=[_cors_middleware])
     websocket.register(http_app, bus)
     snapshot.register(http_app, Path("img"))
 
