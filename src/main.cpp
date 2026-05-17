@@ -241,7 +241,7 @@ void generateNonclippingBallHypotheses(const Resources& r, const std::list<std::
 }
 
 
-#define BENCHMARK true
+#define BENCHMARK false
 
 static volatile bool noSigterm = true;
 void sig_stop(int sig_num) {
@@ -402,10 +402,11 @@ int main(int argc, char* argv[]) {
 				lastDebugSaveTime = realStartTime;
 			}
 		} else if(r.socket->getGeometryVersion()) {
-			geometryCalibration(r, *r.quad2rgba(channels));
+			std::shared_ptr<CLImage> rgba = r.quad2rgba(channels);
+			geometryCalibration(r, *rgba);
 
 			if(r.debugStreamIntervalMs > 0 && (realStartTime - lastDebugSaveTime) * 1000.0 >= r.debugStreamIntervalMs) {
-				r.snapshotWriter->offer(r.quad2rgba(channels), "img/" + std::to_string(r.camId) + ".raw.jpg");
+				r.snapshotWriter->offer(rgba, "img/" + std::to_string(r.camId) + ".raw.jpg");
 				lastDebugSaveTime = realStartTime;
 			}
 		} else {

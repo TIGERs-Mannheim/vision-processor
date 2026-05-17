@@ -1,9 +1,8 @@
-"""HTTP endpoint that streams the C++ vision_processor's debug quad.
+"""HTTP endpoint that serves the C++ vision_processor's debug views.
 
-The C++ side writes ``<img_dir>/sample.<cam_id>.jpg`` periodically (gated
-by the ``debug_stream_interval_ms`` config). aiohttp's ``FileResponse``
-returns 404 automatically when the file is missing, so no explicit
-existence check is required.
+The C++ side writes ``<img_dir>/<cam_id>.<view>.{jpg,png}`` (gated by the
+``debug_stream_interval_ms`` config). When several files match (e.g. the
+calibration ``pixels`` family), the most recently modified one wins.
 """
 
 from __future__ import annotations
