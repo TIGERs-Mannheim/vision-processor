@@ -35,7 +35,7 @@ Topics: `geometry.in`, `detection.in` (inbound demuxed), `wrapper_packet.out` (o
 
 ## CLI flags
 
-Dash form only: `--vision-ip`, `--vision-port`, `--host`, `--port`, `--img-dir`. `geom_publisher.py`'s underscore form is dropped.
+Dash form only: `--vision-ip`, `--vision-port`, `--host`, `--port`. `geom_publisher.py`'s underscore form is dropped.
 
 ## Out-of-scope (planned but not yet built)
 

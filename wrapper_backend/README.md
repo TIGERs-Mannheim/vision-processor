@@ -8,7 +8,7 @@ Python application that owns the field geometry and (eventually) the browser-bas
 ./start_wrapper.sh                          # uses geometry-divB.yml
 ./start_wrapper.sh geometry-divA.yml        # different config
 ./start_wrapper.sh geometry-divB.yml --vision-port 10100
-./start_wrapper.sh geometry-divB.yml --img-dir /var/run/vp/img --port 9000
+./start_wrapper.sh geometry-divB.yml --port 9000
 ```
 
 The wrapper loads the given `geometry-*.yml`, broadcasts an `SSL_WrapperPacket` at 1 Hz on the multicast bus (default `224.5.23.2:10006`), and absorbs incoming per-camera calibrations into its in-memory state. Logs go to stderr.
@@ -39,7 +39,7 @@ The wrapper loads the given `geometry-*.yml`, broadcasts an `SSL_WrapperPacket` 
 - `multicast.py` — async-native UDP via `asyncio.DatagramProtocol`. Inbound parses `SSL_WrapperPacket` and demuxes into typed topics. Outbound subscribes to `wrapper_packet.out` and sends bytes.
 - `geometry.py` — owns the in-memory `SSL_WrapperPacket`. Two concurrent tasks: one absorbs incoming calibrations into it (replace-or-append, never remove); the other emits a serialised snapshot at 1 Hz.
 - `websocket.py` — aiohttp WS at `/ws`. Lazy per-topic bus subscription; per-client size-1 outbox; JSON envelope. See `wrapper-frontend/src/lib/wrapper-bus.ts` for the client side.
-- `snapshot.py` — aiohttp `GET /snapshot/{cam_id}`. Streams `<img_dir>/sample.<cam_id>.jpg` written by the C++ `SnapshotWriter`. Returns 404 when the file is absent (no calibration yet, wrong cam id).
+- `snapshot.py` — aiohttp `GET /snapshot/{cam_id}/{view}`. Globs `img/{cam_id}.{view}.*` and streams the most-recently-modified match (written by the C++ `SnapshotWriter`). Returns 404 when nothing matches. `img/` is hardcoded on both sides — the C++ side writes there too, relative to its cwd.
 - `__main__.py` — CLI, logging, builds the aiohttp Application and wires every module onto it and the bus.
 
 Topics:
@@ -77,4 +77,4 @@ Type stubs for `protobuf` and `pyyaml` are dev deps. The two `# type: ignore[ass
 
 - **Strict YAML parsing.** `ParseDict` runs without `ignore_unknown_fields`, so a typo in `geometry.yml` raises at startup instead of being silently dropped.
 - **`default_lines:` renamed to `optional_field_lines:`** with all four toggles required. See `wrapper_backend/CLAUDE.md` for details.
-- **Dash-form CLI flags only** (`--vision-ip`, `--vision-port`, `--host`, `--port`, `--img-dir`). The underscore form is dropped.
+- **Dash-form CLI flags only** (`--vision-ip`, `--vision-port`, `--host`, `--port`). The underscore form is dropped.
