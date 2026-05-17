@@ -241,7 +241,7 @@ void generateNonclippingBallHypotheses(const Resources& r, const std::list<std::
 }
 
 
-#define BENCHMARK false
+#define BENCHMARK true
 
 static volatile bool noSigterm = true;
 void sig_stop(int sig_num) {
@@ -394,7 +394,7 @@ int main(int argc, char* argv[]) {
 			}
 
 			if(r.debugStreamIntervalMs > 0 && (realStartTime - lastDebugSaveTime) * 1000.0 >= r.debugStreamIntervalMs) {
-				const std::string prefix = "img/sample." + std::to_string(r.camId) + ".";
+				const std::string prefix = "img/" + std::to_string(r.camId) + ".";
 				r.snapshotWriter->offer(r.quad2rgba(channels), prefix + "raw.jpg");
 				r.snapshotWriter->offer(flat, prefix + "flat.jpg");
 				r.snapshotWriter->offer(gradDot, prefix + "gradient.jpg");
@@ -405,7 +405,7 @@ int main(int argc, char* argv[]) {
 			geometryCalibration(r, *r.quad2rgba(channels));
 
 			if(r.debugStreamIntervalMs > 0 && (realStartTime - lastDebugSaveTime) * 1000.0 >= r.debugStreamIntervalMs) {
-				r.quad2rgba(channels)->save(".sample." + std::to_string(r.camId) + ".png");
+				r.snapshotWriter->offer(r.quad2rgba(channels), "img/" + std::to_string(r.camId) + ".raw.jpg");
 				lastDebugSaveTime = realStartTime;
 			}
 		} else {
@@ -413,7 +413,7 @@ int main(int argc, char* argv[]) {
 
 			bool periodicSave = r.debugStreamIntervalMs > 0 && (realStartTime - lastDebugSaveTime) * 1000.0 >= r.debugStreamIntervalMs;
 			if(frameId == 100 || periodicSave) {  // Wait for automatic gain, exposure and white balance adjustments
-				r.quad2rgba(channels)->save(".sample." + std::to_string(r.camId) + ".png");
+				r.snapshotWriter->offer(r.quad2rgba(channels), "img/" + std::to_string(r.camId) + ".raw.jpg");
 				lastDebugSaveTime = realStartTime;
 				if(frameId == 100)
 					std::cout << "[main] Saved sample image" << std::endl;

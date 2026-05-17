@@ -17,6 +17,9 @@ def register(http_app: web.Application, img_dir: Path) -> None:
     async def handler(request: web.Request) -> web.FileResponse:
         cam_id = request.match_info["cam_id"]
         view = request.match_info["view"]
-        return web.FileResponse(img_dir / f"sample.{cam_id}.{view}.jpg")
+        matches = list(img_dir.glob(f"{cam_id}.{view}.*"))
+        if not matches:
+            raise web.HTTPNotFound
+        return web.FileResponse(max(matches, key=lambda p: p.stat().st_mtime))
 
     http_app.router.add_get("/snapshot/{cam_id}/{view}", handler)
