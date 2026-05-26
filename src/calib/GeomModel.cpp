@@ -528,7 +528,7 @@ void geometryCalibration(const Resources& r, const CLImage& rgba) {
 
 	cv::Mat thresholded(gray.rows, gray.cols, CV_8UC1, 0.0);
 	thresholdImage(r, gray, halfLineWidth, thresholded);
-	cv::imwrite(prefix + "pixels.png", thresholded);
+	cv::imwrite(diag.thresholded_image_path, thresholded);
 
 	const std::vector<Eigen::Vector2f> linePixels = getLinePixels(thresholded);
 	diag.line_pixel_count = (int)linePixels.size();
@@ -579,7 +579,7 @@ void geometryCalibration(const Resources& r, const CLImage& rgba) {
 	for (const auto& item : mergedLines) {
 		cv::line(bgr, {item.first}, {item.second}, CV_RGB(0, 255, 0));
 	}
-	cv::imwrite(prefix + "lines.png", bgr);
+	cv::imwrite(diag.lines_image_path, bgr);
 
 	const bool calibHeight = r.cameraHeight == 0.0;
 	CameraModel model({thresholded.cols, thresholded.rows}, r.camId, r.cameraAmount, (float)r.cameraHeight, r.socket->getGeometry().field());
@@ -588,7 +588,7 @@ void geometryCalibration(const Resources& r, const CLImage& rgba) {
 
 	cornerCalibration(r, mergedPixels, thresholded, calibHeight, model);
 	drawModel(r, thresholded, linePixels, model);
-	cv::imwrite(prefix + "pixels.corner.png", thresholded);
+	cv::imwrite(diag.corner_overlay_path, thresholded);
 
 	if(r.geometryRefinement)
 		directCalibrationRefinement(r, mergedPixels, linePixels, calibHeight, model);
@@ -613,7 +613,7 @@ void geometryCalibration(const Resources& r, const CLImage& rgba) {
 	r.socket->send(wrapper);
 
 	drawModel(r, thresholded, linePixels, model);
-	cv::imwrite(prefix + "pixels.refined.png", thresholded);
+	cv::imwrite(diag.refined_overlay_path, thresholded);
 
 	diag.writeJson("img/" + rgba.name + ".calib.json");
 }
