@@ -24,9 +24,9 @@ from proto.ssl_vision_wrapper_pb2 import (
     SSL_SOURCE_VISION_PROCESSOR,
     SSL_WrapperPacket,
 )
-from wrapper.bus import Bus
+from wrapper_backend.bus import Bus
 
-log = logging.getLogger("wrapper.geometry")
+log = logging.getLogger("wrapper_backend.geometry")
 
 PUBLISH_INTERVAL_S = 1.0
 

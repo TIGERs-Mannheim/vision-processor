@@ -14,9 +14,9 @@ import struct
 from google.protobuf.message import DecodeError
 
 from proto.ssl_vision_wrapper_pb2 import SSL_WrapperPacket
-from wrapper.bus import Bus
+from wrapper_backend.bus import Bus
 
-log = logging.getLogger("wrapper.multicast")
+log = logging.getLogger("wrapper_backend.multicast")
 
 
 class _MulticastToBus(asyncio.DatagramProtocol):

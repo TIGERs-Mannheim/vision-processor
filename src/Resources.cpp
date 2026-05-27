@@ -117,6 +117,7 @@ Resources::Resources(const std::string& configPath) : configPath(configPath) {
 	YAML::Node stream = getOptional(config["stream"]);
 	rtpStreamer = std::make_shared<RTPStreamer>(stream["active"].as<bool>(true), "rtp://" + stream["ip_base_prefix"].as<std::string>("224.5.23.") + std::to_string(stream["ip_base_end"].as<int>(100) + camId) + ":" + std::to_string(stream["port"].as<int>(10100)));
 	rawFeed = stream["raw_feed"].as<bool>(false);
+	snapshotWriter = std::make_shared<SnapshotWriter>();
 
 	raw2quadKernel = openCl->compile(kernel_raw2quad_cl, camera->format().kernelOptions);
 	resampling = openCl->compile(kernel_resampling_cl, camera->format().kernelOptions);

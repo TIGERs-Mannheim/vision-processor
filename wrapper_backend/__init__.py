@@ -4,10 +4,10 @@ import pathlib
 import subprocess
 import sys
 
-_WRAPPER_DIR = pathlib.Path(__file__).resolve().parent
-_REPO_ROOT = _WRAPPER_DIR.parent
+_BACKEND_DIR = pathlib.Path(__file__).resolve().parent
+_REPO_ROOT = _BACKEND_DIR.parent
 _PROTO_SRC = _REPO_ROOT / "proto"
-_PROTO_OUT = _WRAPPER_DIR / "proto"
+_PROTO_OUT = _BACKEND_DIR / "proto"
 
 
 def _generate_proto_bindings() -> None:
@@ -15,10 +15,10 @@ def _generate_proto_bindings() -> None:
     if not sources:
         raise RuntimeError(f"no .proto files found in {_PROTO_SRC}")
     print("Compiling Protobuf files...", file=sys.stderr)
-    cmd_base = ["protoc", f"--proto_path={_REPO_ROOT}", f"--python_out={_WRAPPER_DIR}"]
+    cmd_base = ["protoc", f"--proto_path={_REPO_ROOT}", f"--python_out={_BACKEND_DIR}"]
     args = [str(p.relative_to(_REPO_ROOT)) for p in sources]
     try:
-        subprocess.run([*cmd_base, f"--pyi_out={_WRAPPER_DIR}", *args], check=True)
+        subprocess.run([*cmd_base, f"--pyi_out={_BACKEND_DIR}", *args], check=True)
     except subprocess.CalledProcessError:
         # Older protoc (e.g. Ubuntu 22.04) doesn't support --pyi_out.
         subprocess.run([*cmd_base, *args], check=True)
@@ -38,4 +38,4 @@ if _bindings_are_stale():
 
 # Generated _pb2.py files import siblings as `from proto import X_pb2`,
 # so the directory holding them must be on sys.path as `proto`.
-sys.path.insert(0, str(_WRAPPER_DIR))
+sys.path.insert(0, str(_BACKEND_DIR))

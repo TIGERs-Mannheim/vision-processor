@@ -22,14 +22,13 @@ import json
 import logging
 from typing import Any, Callable
 
+from aiohttp import WSMsgType, web
 from google.protobuf.json_format import MessageToDict
-from websockets.asyncio.server import Server, ServerConnection, serve
-from websockets.exceptions import ConnectionClosed
 
 from proto.ssl_vision_wrapper_pb2 import SSL_WrapperPacket
-from wrapper.bus import Bus
+from wrapper_backend.bus import Bus
 
-log = logging.getLogger("wrapper.websocket")
+log = logging.getLogger("wrapper_backend.websocket")
 
 
 def _encode_wrapper_packet(payload: bytes) -> dict[str, Any]:
@@ -46,8 +45,8 @@ _TOPIC_ENCODERS: dict[str, Callable[[Any], dict[str, Any]]] = {
 
 
 class _Client:
-    def __init__(self, connection: ServerConnection) -> None:
-        self._connection = connection
+    def __init__(self, websocket: web.WebSocketResponse) -> None:
+        self._websocket = websocket
         self._outbox: asyncio.Queue[str] = asyncio.Queue(maxsize=1)
         self.topics: set[str] = set()
 
@@ -62,15 +61,14 @@ class _Client:
         payload: dict[str, str] = {"error": message}
         if topic is not None:
             payload["topic"] = topic
-        await self._connection.send(json.dumps(payload))
+        await self._websocket.send_str(json.dumps(payload))
 
     async def deliver_forever(self) -> None:
         while True:
             frame = await self._outbox.get()
-            try:
-                await self._connection.send(frame)
-            except ConnectionClosed:
+            if self._websocket.closed:
                 return
+            await self._websocket.send_str(frame)
 
 
 class _Channel:
@@ -79,41 +77,22 @@ class _Channel:
         self.task = task
 
 
-class WebSocketServer:
-    def __init__(self, bus: Bus, host: str, port: int) -> None:
+class _TopicBridge:
+    def __init__(self, bus: Bus) -> None:
         self._bus = bus
-        self._host = host
-        self._port = port
         self._channels: dict[str, _Channel] = {}
-        self._server: Server | None = None
 
-    async def start(self) -> None:
-        self._server = await serve(self._handle_client, self._host, self._port)
-        log.info("websocket listening on %s:%d", self._host, self._port)
-
-    async def close(self) -> None:
-        for topic, channel in list(self._channels.items()):
-            channel.task.cancel()
-            try:
-                await channel.task
-            except asyncio.CancelledError:
-                pass
-            self._channels.pop(topic, None)
-        if self._server is not None:
-            self._server.close()
-            await self._server.wait_closed()
-            self._server = None
-
-    async def _handle_client(self, connection: ServerConnection) -> None:
-        client = _Client(connection)
-        peer = connection.remote_address
+    async def handle(self, request: web.Request) -> web.WebSocketResponse:
+        websocket = web.WebSocketResponse()
+        await websocket.prepare(request)
+        client = _Client(websocket)
+        peer = request.remote
         log.info("client connected: %s", peer)
         delivery = asyncio.create_task(client.deliver_forever(), name="ws-deliver")
         try:
-            async for raw in connection:
-                await self._on_client_message(client, raw)
-        except ConnectionClosed:
-            pass
+            async for message in websocket:
+                if message.type == WSMsgType.TEXT:
+                    await self._on_client_message(client, message.data)
         finally:
             for topic in list(client.topics):
                 self._leave(client, topic)
@@ -123,8 +102,18 @@ class WebSocketServer:
             except asyncio.CancelledError:
                 pass
             log.info("client disconnected: %s", peer)
+        return websocket
 
-    async def _on_client_message(self, client: _Client, raw: str | bytes) -> None:
+    async def shutdown(self, _: web.Application) -> None:
+        for topic, channel in list(self._channels.items()):
+            channel.task.cancel()
+            try:
+                await channel.task
+            except asyncio.CancelledError:
+                pass
+            self._channels.pop(topic, None)
+
+    async def _on_client_message(self, client: _Client, raw: str) -> None:
         try:
             request = json.loads(raw)
             action = request["action"]
@@ -180,3 +169,9 @@ class WebSocketServer:
                     client.post(frame)
         finally:
             self._bus.unsubscribe(topic, queue)
+
+
+def register(http_app: web.Application, bus: Bus) -> None:
+    bridge = _TopicBridge(bus)
+    http_app.router.add_get("/ws", bridge.handle)
+    http_app.on_cleanup.append(bridge.shutdown)
