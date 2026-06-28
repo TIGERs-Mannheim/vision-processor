@@ -268,7 +268,13 @@ void VisionSocket::updateTime() {
 	if (cams == 0)
 		return;
 
-	realTimeOffset += offset / (2*cams);
+	offset /= 2*cams;
+	if (offset < -0.010) {
+		std::cerr << "[UDPSocket] Large backwards time jump suppressed: " << offset << "s" << std::endl;
+		return;
+	}
+
+	realTimeOffset += offset;
 }
 
 void VisionSocket::timeSynchronization(const SSL_DetectionFrame& detection) {
