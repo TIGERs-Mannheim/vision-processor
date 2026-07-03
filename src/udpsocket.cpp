@@ -57,6 +57,10 @@ UDPSocket::UDPSocket(const std::string& ip, uint16_t port) {
 		std::cerr << "Setting SO_REUSEADDR on UDP socket failed" << std::endl;
 	}
 
+  	if (setsockopt(socket_, SOL_SOCKET, SO_BROADCAST, (char*) &yes, sizeof(yes)) < 0) {
+		std::cerr << "Setting SO_BROADCAST on UDP socket failed" << std::endl;
+	}
+
 	int ttl = 32; 
 	if (setsockopt(socket_, IPPROTO_IP, IP_MULTICAST_TTL, (char*) &ttl, sizeof(ttl)) < 0) {
 			std::cerr << "Setting TTL failed" << std::endl;
