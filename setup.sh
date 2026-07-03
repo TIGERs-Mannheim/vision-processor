@@ -99,10 +99,12 @@ function install_service {
 [Unit]
 Wants=network-online.target
 After=network-online.target
+StartLimitIntervalSec=0
 
 [Service]
 Type=simple
-Restart=always
+Restart=on-failure
+RestartSec=5
 ExecStart=$SCRIPT_DIR/$2
 WorkingDirectory=$SCRIPT_DIR
 
