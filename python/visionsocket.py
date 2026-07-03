@@ -56,11 +56,15 @@ def open_multicast_socket(ip, port):
     TTL = 32
     sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, struct.pack('b', TTL))
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
     sock.bind((ip, port))
-    sock.setsockopt(
-        socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP,
-        struct.pack("4sl", socket.inet_aton(ip), socket.INADDR_ANY)
-    )
+    try:
+        sock.setsockopt(
+            socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP,
+            struct.pack("4sl", socket.inet_aton(ip), socket.INADDR_ANY)
+        )
+    except:
+        print("Could not join multicast group")
     return sock
 
 
