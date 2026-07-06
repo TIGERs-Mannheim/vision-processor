@@ -1,12 +1,15 @@
-# For a line name definition see the SSL rules: https://robocup-ssl.github.io/ssl-rules/sslrules.html#_field_setup
-default_lines:
-  goal2goal: true
-  halfway: true
-  centercircle: true
-
 # All lengths are in mm.
 # The configuration structure below mirrors proto/ssl_vision_geometry.proto,
 # see there for a description of all parameters.
+
+# SSL field markings that may be absent on lab/exhibition carpets.
+# Toggle off any line your physical field does not have; emitting markings
+# the camera cannot see disturbs calibration.
+optional_field_lines:
+  goal2goal: true     # CenterLine running end-to-end through the field center
+  halfway: true       # HalfwayLine splitting the field across its width
+  centercircle: true  # CenterCircle arc at the field center
+  penalty: true       # Penalty-area stretches in front of each goal
 
 field:
   field_length: 9000

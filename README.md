@@ -12,6 +12,13 @@ The geometry publisher `geom_publisher.py` publishes the field geometry
 for all vision_processors, teams and the game controller.
 `cam_viewer.py` opens the `mpv` video player with the camera streams from the vision_processor instances.
 
+## Wrapper
+
+A modular replacement for `geom_publisher.py` plus a browser UI:
+
+- `wrapper_backend/` — async Python (uv-managed). Owns the field geometry, absorbs incoming calibrations, exposes the bus over WebSocket. Run with `./start_wrapper.sh` (defaults to `geometry-divB.yml`). See [`wrapper_backend/README.md`](wrapper_backend/README.md).
+- `wrapper-frontend/` — Svelte 5 + TypeScript + Vite. Connects to the backend's WebSocket and renders the operator UI. Run with `cd wrapper-frontend && npm install && npm run dev`. See [`wrapper-frontend/README.md`](wrapper-frontend/README.md).
+
 
 ## Dependency installation and compilation
 
@@ -64,10 +71,13 @@ Installation with PIP: `pip install protobuf pyyaml`
 3. Start `build/vision_processor config[X].yml` for each camera.
 4. Tune the orientation and position of each camera.
    You can view the camera feeds with `python/cam_viewer.py --cameras <X>`.
-5. Restart the `vision_processor`s for the generation of a new sample image `img/sample.[X].png`
+5. Restart the `vision_processor`s for the generation of a new sample image `img/[X].raw.jpg`
    and complete the `geometry` section of each camera config with it.
    Visual explanation how to determine `line_corners`: ![Line corner example](line_corners.png)
-6. Restart all `vision_processor`s to reload the config.
+6. Restart all `vision_processor`s to pick up the new `geometry` section.
+   Subsequent edits to thresholds, tracking limits and color references in `config[X].yml`
+   are picked up live (within ~0.5 s) without a restart; camera, geometry, network and stream
+   sections still require a restart.
 7. Modify `geometry[X].yml` to match your field geometry.
    (for simple use cases configuring the field size, penalty area and goal will suffice)
 8. Start `python/geom_publisher.py geometry[X].yml`.
@@ -108,6 +118,25 @@ If the blobs are nearly white: adjust exposure, gain and gamma such that the blo
 
 If blobs are attributed the wrong color (or balls are seemingly undetected despite high blob scores)
 adjust the reference colors under `color`.
+
+### Bot detections are lost in close distance
+
+If bot detections are lost when multiple bots are in close distance (e.g. during collisions), increase `clipping_tolerance`.
+
+### Calibration is wrong on a field missing some standard lines
+
+If your physical field is missing one of the optional SSL markings (center-to-center line, halfway line, center circle, or penalty-area stretches), the calibration is fed lines that the camera cannot see and the reprojection does not match the field boundary.
+In `geometry[X].yml` set the corresponding flag under `optional_field_lines` to `false`:
+
+    optional_field_lines:
+      goal2goal: false     # set to false if your field has no end-to-end center line
+      halfway: true
+      centercircle: true
+      penalty: true
+
+### Bottom half of frames looks smeared / blurred (H.264 network source)
+
+H.264 RTSP streams can silently produce corrupted frames on slower or throttled machines. Switch the source to MJPEG, or run on a machine with a real OpenCL GPU.
 
 ### If nothing else helps
 

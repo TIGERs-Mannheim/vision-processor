@@ -21,6 +21,7 @@
 #include <yaml-cpp/node/node.h>
 #include "driver/cameradriver.h"
 #include "rtpstreamer.h"
+#include "snapshotwriter.h"
 #include "udpsocket.h"
 #include "Perspective.h"
 #include "opencl.h"
@@ -37,7 +38,9 @@ typedef struct __attribute__ ((packed)) RGB {
 
 class Resources {
 public:
-	explicit Resources(const YAML::Node& config);
+	explicit Resources(const std::string& configPath);
+
+	void reloadConfigIfChanged();
 
 	std::unique_ptr<CameraDriver> camera = nullptr;
 
@@ -53,6 +56,7 @@ public:
 	float minConfidence;
 	float resamplingFactor;
 	float clippingTolerance;
+	float geometryTolerance;
 
 	float referenceForce;
 	float historyForce;
@@ -68,6 +72,7 @@ public:
 	Eigen::Vector3i blue;
 	Eigen::Vector3i green;
 	Eigen::Vector3i pink;
+	Eigen::Vector3i fieldLineColor = fieldReference;
 
 	int cameraAmount;
 	double cameraHeight; // Just for calibration, do not use elsewhere (0.0 as special value for automatic calibration)
@@ -80,6 +85,7 @@ public:
 
 	std::string groundTruth;
 	bool debugImages;
+	int debugStreamIntervalMs;
 	bool rawFeed;
 
 	std::shared_ptr<GCSocket> gcSocket;
@@ -87,6 +93,7 @@ public:
 	std::shared_ptr<Perspective> perspective;
 	std::shared_ptr<OpenCL> openCl;
 	std::shared_ptr<RTPStreamer> rtpStreamer;
+	std::shared_ptr<SnapshotWriter> snapshotWriter;
 
 	cl::Kernel raw2quadKernel;
 	cl::Kernel resampling;
@@ -105,4 +112,10 @@ public:
 
 	void streamQuad(std::shared_ptr<CLImage>* channels);
 	void streamImage(CLImage& img);
+
+private:
+	std::string configPath;
+	int64_t configMtime = 0;
+	double lastConfigCheckTime = 0.0;
+	void applyTunables(const YAML::Node& config);
 };

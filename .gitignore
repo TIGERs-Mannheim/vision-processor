@@ -3,6 +3,7 @@
 /src/cl_kernels.S
 /src/proto
 /python/proto
+/wrapper_backend/proto
 __pycache__
 
 # Cam viewer

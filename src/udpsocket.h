@@ -17,6 +17,7 @@
 
 
 #include <thread>
+#include <mutex>
 #include <google/protobuf/message.h>
 #include "proto/ssl_vision_geometry.pb.h"
 #include "proto/ssl_vision_detection.pb.h"

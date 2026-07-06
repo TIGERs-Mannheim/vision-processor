@@ -44,6 +44,7 @@ void Perspective::geometryCheck(const int width, const int height, const double 
 			if(!calib.has_derived_camera_world_tx() || !calib.has_derived_camera_world_ty() || !calib.has_derived_camera_world_tz()) {
 				socket->send(model.getProto(camId));
 				SSL_WrapperPacket wrapper;
+				wrapper.set_source(SSL_SOURCE_VISION_PROCESSOR);
 				wrapper.mutable_geometry()->CopyFrom(socket->getGeometry());
 				wrapper.mutable_geometry()->clear_calib();
 				wrapper.mutable_geometry()->add_calib()->CopyFrom(model.getProto(camId));
@@ -103,8 +104,8 @@ void Perspective::geometryCheck(const int width, const int height, const double 
 	}
 
 	// clamp to field boundaries
-	const float halfLength = (float)field.field_length()/2.0f + goalBoundaryWidth(field);
-	const float halfWidth = (float)field.field_width()/2.0f + (float)field.boundary_width();
+	const float halfLength = (float)field.field_length()/2.0f + goalBoundaryWidth(field) + geometryTolerance;
+	const float halfWidth = (float)field.field_width()/2.0f + (float)field.boundary_width() + geometryTolerance;
 	visibleFieldExtent[0] = std::max(visibleFieldExtent[0], -halfLength);
 	visibleFieldExtent[1] = std::min(visibleFieldExtent[1], halfLength);
 	visibleFieldExtent[2] = std::max(visibleFieldExtent[2], -halfWidth);

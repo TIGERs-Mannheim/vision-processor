@@ -15,19 +15,19 @@
  */
 #include <csignal>
 #include <iostream>
-#include <iomanip>
 #include <opencv2/bgsegm.hpp>
 #include <yaml-cpp/yaml.h>
 
+#include "CameraModel.h"
+#include "proto/ssl_vision_geometry.pb.h"
 #include "proto/ssl_vision_wrapper.pb.h"
 #include "Resources.h"
-#include "GroundTruth.h"
 #include "calib/GeomModel.h"
 #include "pattern.h"
 #include "cl_kernels.h"
 #include "blobs/hypothesis.h"
-#include "blobs/kmeans.h"
 #include "blobs/kdtree.h"
+#include "blobs/colorupdate.h"
 #include <opencv2/video/background_segm.hpp>
 
 struct __attribute__ ((packed)) CLMatch {
@@ -162,24 +162,28 @@ void filterStddevScore(std::list<std::unique_ptr<T>>& bots, float threshold) {
 	}
 }
 
-void filterBallsAtCamEdge(const Resources& r, std::list<std::unique_ptr<BallHypothesis>>& balls) {
+static inline bool closerThanCamEdgeDistance(const Resources& r, const Eigen::Vector2f& pos, const Eigen::Vector2f& border) {
 	const SSL_GeometryFieldSize& field = r.perspective->field;
-	const float halfLength = (float)field.field_length()/2.0f + goalBoundaryWidth(field);
-	const float halfWidth = (float)field.field_width()/2.0f + (float)field.boundary_width();
+	const float halfFieldLength = field.field_length()/2 + goalBoundaryWidth(field);
+	const float halfFieldWidth = field.field_width()/2 + field.boundary_width();
 
-	const Eigen::Vector4f& visibleFieldExtent = r.perspective->visibleFieldExtent; // xmin, xmax, ymin, ymax
-	bool xMinIsEdge = visibleFieldExtent[0] != -halfLength;
-	bool xMaxIsEdge = visibleFieldExtent[1] != halfLength;
-	bool yMinIsEdge = visibleFieldExtent[2] != -halfWidth;
-	bool yMaxIsEdge = visibleFieldExtent[3] != halfWidth;
+	Eigen::Vector2f borderPos = r.perspective->model.image2field(border, (float)r.gcSocket->maxBotHeight).head<2>();
 
+	// Don't filter if border is outside field -> cannot be a partial robot
+	bool borderInsideField = borderPos.x() >= -halfFieldLength && borderPos.x() <= halfFieldLength && borderPos.y() >= -halfFieldWidth && borderPos.y() <= halfFieldWidth;
+	return borderInsideField && (borderPos - pos).squaredNorm() < r.minCamEdgeDistance*r.minCamEdgeDistance;
+}
+
+void filterBallsAtCamEdge(const Resources& r, std::list<std::unique_ptr<BallHypothesis>>& balls) {
 	for(auto it = balls.cbegin(); it != balls.cend(); ) {
 		const Eigen::Vector2f& pos = (*it)->pos;
+		const Eigen::Vector2f imgPos = r.perspective->model.field2image({pos.x(), pos.y(), (float)r.gcSocket->maxBotHeight});
+
 		if(
-				(xMinIsEdge && abs(pos.x() - visibleFieldExtent[0]) <= r.minCamEdgeDistance) ||
-				(xMaxIsEdge && abs(pos.x() - visibleFieldExtent[1]) <= r.minCamEdgeDistance) ||
-				(yMinIsEdge && abs(pos.y() - visibleFieldExtent[2]) <= r.minCamEdgeDistance) ||
-				(yMaxIsEdge && abs(pos.y() - visibleFieldExtent[3]) <= r.minCamEdgeDistance)
+				closerThanCamEdgeDistance(r, pos, Eigen::Vector2f(0.0f, imgPos.y())) ||
+				closerThanCamEdgeDistance(r, pos, Eigen::Vector2f(r.perspective->model.size.x()-1, imgPos.y())) ||
+				closerThanCamEdgeDistance(r, pos, Eigen::Vector2f(imgPos.x(), 0.0f)) ||
+				closerThanCamEdgeDistance(r, pos, Eigen::Vector2f(imgPos.x(), r.perspective->model.size.y()-1))
 		) {
 			it = balls.erase(it);
 		} else {
@@ -236,67 +240,6 @@ void generateNonclippingBallHypotheses(const Resources& r, const std::list<std::
 	}
 }
 
-static inline void updateColor(const Resources& r, const Eigen::Vector3i& reference, const Eigen::Vector3i& oldColor, Eigen::Vector3i& color) {
-	const float updateForce = 1.0f - r.referenceForce - r.historyForce;
-	color = (r.referenceForce*reference.cast<float>() + r.historyForce*oldColor.cast<float>() + updateForce*color.cast<float>()).cast<int>();
-}
-
-static void updateColors(Resources& r, const std::list<std::unique_ptr<BotHypothesis>>& bestBotModels, const std::list<std::unique_ptr<BallHypothesis>>& ballCandidates) {
-	Eigen::Vector3i oldField = r.field;
-	Eigen::Vector3i oldOrange = r.orange;
-	Eigen::Vector3i oldYellow = r.yellow;
-	Eigen::Vector3i oldBlue = r.blue;
-	Eigen::Vector3i oldGreen = r.green;
-	Eigen::Vector3i oldPink = r.pink;
-
-	std::vector<Eigen::Vector3i> centerBlobs;
-	Eigen::Vector3i pink(0, 0, 0);
-	int pinkN = 0;
-	Eigen::Vector3i green(0, 0, 0);
-	int greenN = 0;
-	for (const auto& model : bestBotModels) {
-		if(model->blobs[0] != nullptr)
-			centerBlobs.push_back(model->blobs[0]->color);
-
-		int botId = model->botId % 16;
-		for(int i = 1; i < 5; i++) {
-			const Match* blob = model->blobs[i];
-			if(blob == nullptr)
-				continue;
-
-			if((patterns[botId] >> (4-i)) & 1) {
-				green += blob->color;
-				greenN++;
-			} else {
-				pink += blob->color;
-				pinkN++;
-			}
-		}
-	}
-
-	if(pinkN > 0) {
-		r.pink = pink / pinkN;
-		updateColor(r, r.pinkReference, oldPink, r.pink);
-	}
-	if(greenN > 0) {
-		r.green = green / greenN;
-		updateColor(r, r.greenReference, oldGreen, r.green);
-	}
-
-	if(kMeans(r.pink, centerBlobs, r.yellow, r.blue)) {
-		updateColor(r, r.yellowReference, oldYellow, r.yellow);
-		updateColor(r, r.blueReference, oldBlue, r.blue);
-	}
-
-	std::vector<Eigen::Vector3i> ballBlobs;
-	for (const auto& ball : ballCandidates)
-		ballBlobs.push_back(ball->blob->center);
-
-	if(kMeans(r.blue, ballBlobs, r.orange, r.field)) {
-		updateColor(r, r.orangeReference, oldOrange, r.orange);
-		updateColor(r, r.fieldReference, oldField, r.field);
-	}
-}
 
 #define BENCHMARK false
 
@@ -306,10 +249,11 @@ void sig_stop(int sig_num) {
 }
 
 int main(int argc, char* argv[]) {
-	Resources r(YAML::LoadFile(argc > 1 ? argv[1] : "config.yml"));
+	Resources r(argc > 1 ? argv[1] : "config.yml");
 	cl::Kernel blobList = r.openCl->compile(kernel_blobList_cl);
 
 	uint32_t frameId = 0;
+	double lastDebugSaveTime = 0.0;
 	CLArray matchArray(sizeof(CLMatch) * r.maxBlobs);
 	CLArray counter(sizeof(cl_int)*3);
 
@@ -317,6 +261,7 @@ int main(int argc, char* argv[]) {
 	signal(SIGINT, sig_stop);
 	while(noSigterm) {
 		frameId++;
+		r.reloadConfigIfChanged();
 		std::shared_ptr<RawImage> img = r.camera->readImage();
 		if(img == nullptr)
 			break;
@@ -447,14 +392,32 @@ int main(int argc, char* argv[]) {
 						break;
 				}
 			}
+
+			if(r.debugStreamIntervalMs > 0 && (realStartTime - lastDebugSaveTime) * 1000.0 >= r.debugStreamIntervalMs) {
+				const std::string prefix = "img/" + std::to_string(r.camId) + ".";
+				r.snapshotWriter->offer(r.quad2rgba(channels), prefix + "raw.jpg");
+				r.snapshotWriter->offer(flat, prefix + "flat.jpg");
+				r.snapshotWriter->offer(gradDot, prefix + "gradient.jpg");
+				r.snapshotWriter->offer(blobCenter, prefix + "blob.jpg");
+				lastDebugSaveTime = realStartTime;
+			}
 		} else if(r.socket->getGeometryVersion()) {
-			geometryCalibration(r, *r.quad2rgba(channels));
+			std::shared_ptr<CLImage> rgba = r.quad2rgba(channels);
+			geometryCalibration(r, *rgba);
+
+			if(r.debugStreamIntervalMs > 0 && (realStartTime - lastDebugSaveTime) * 1000.0 >= r.debugStreamIntervalMs) {
+				r.snapshotWriter->offer(rgba, "img/" + std::to_string(r.camId) + ".raw.jpg");
+				lastDebugSaveTime = realStartTime;
+			}
 		} else {
 			r.streamQuad(channels);
 
-			if(frameId == 100) {  // Wait for automatic gain, exposure and white balance adjustments
-				r.quad2rgba(channels)->save(".sample." + std::to_string(r.camId) + ".png");
-				std::cout << "[main] Saved sample image" << std::endl;
+			bool periodicSave = r.debugStreamIntervalMs > 0 && (realStartTime - lastDebugSaveTime) * 1000.0 >= r.debugStreamIntervalMs;
+			if(frameId == 100 || periodicSave) {  // Wait for automatic gain, exposure and white balance adjustments
+				r.snapshotWriter->offer(r.quad2rgba(channels), "img/" + std::to_string(r.camId) + ".raw.jpg");
+				lastDebugSaveTime = realStartTime;
+				if(frameId == 100)
+					std::cout << "[main] Saved sample image" << std::endl;
 			}
 		}
 	}
