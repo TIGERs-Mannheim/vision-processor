@@ -100,5 +100,5 @@ double OpenCVDriver::getGamma() {
 	return capture.get(cv::CAP_PROP_GAMMA);
 }
 void OpenCVDriver::setGamma(double gamma) {
-	capture.set(cv::CAP_PROP_GAMMA);
+	capture.set(cv::CAP_PROP_GAMMA, gamma);
 }

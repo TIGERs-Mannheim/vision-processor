@@ -240,6 +240,29 @@ void generateNonclippingBallHypotheses(const Resources& r, const std::list<std::
 	}
 }
 
+void updateGain(Resources& r, const std::list<std::unique_ptr<BotHypothesis>>& bots, const std::list<std::unique_ptr<BallHypothesis>>& balls) {
+	float avgBlobBrightness = 0.0f;
+
+	int blobs = balls.size();
+	for(auto& ball : balls)
+		avgBlobBrightness += ball->blob->color.x();
+
+	for(auto& bot : bots) {
+		blobs += bot->blobAmount;
+		for(int i = 0; i < bot->blobAmount; i++)
+			avgBlobBrightness += bot->blobs[i]->color.x();
+	}
+	if(blobs < 5) // Require minimum blob amount for update
+		return;
+
+	avgBlobBrightness /= blobs;
+	double oldGain = r.camera->getGain();
+	double newGain = oldGain * 128.0f/avgBlobBrightness;
+
+	std::cout << "[main] Updating gain from " << oldGain << " to " << newGain << std::endl;
+	r.camera->setGain(newGain);
+}
+
 
 #define BENCHMARK false
 
@@ -370,6 +393,9 @@ int main(int argc, char* argv[]) {
 			r.socket->send(wrapper);
 			r.socket->updateTime();
 			r.openCl->clearEvents();
+
+			if(r.autoGain && (frameId % 100) == 0) // Do only every 100th frame to wait for configurations to have propagated to the camera
+				updateGain(r, botHypotheses, ballHypotheses);
 
 			if(processingTime > r.camera->expectedFrametime())
 				std::cout << "[main] frame time overrun: " << processingTime * 1000.0 << " ms " << matches.size() << " blobs " << detection->balls().size() << " balls " << (detection->robots_yellow_size() + detection->robots_blue_size()) << " bots" << std::endl;

@@ -74,7 +74,9 @@ Resources::Resources(const std::string& configPath) : configPath(configPath) {
 		configMtime = (int64_t)st.st_mtim.tv_sec * 1000000000 + st.st_mtim.tv_nsec;
 
 	openCl = std::make_shared<OpenCL>();
-	camera = openCamera(CameraConfig(getOptional(config["camera"])));
+	CameraConfig camConfig(getOptional(config["camera"]));
+	camera = openCamera(camConfig);
+	autoGain = camConfig.autoGain();
 
 	camId = config["cam_id"].as<int>(0);
 	if (camId < 0 || camId > 7) {

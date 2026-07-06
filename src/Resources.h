@@ -46,6 +46,8 @@ public:
 
 	int camId;
 
+	bool autoGain;
+
 	double minTrackingRadius;
 	double maxBotAcceleration; // mm/s²
 
