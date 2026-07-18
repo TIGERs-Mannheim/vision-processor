@@ -88,6 +88,8 @@ Installation with PIP: `pip install protobuf pyyaml`
 
 ## Troubleshooting
 
+Further information regarding setup and troubleshooting can be found in [documentation.md](documentation.md).
+
 The camera livestream cycles through 4 different views:
 1. **Raw camera data**
    If the data is very bright, dark or miscolored consider adjusting
