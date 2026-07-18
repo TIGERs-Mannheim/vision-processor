@@ -51,15 +51,16 @@ field:
   #  type: Undefined
 
 # acc_slide and acc_roll are in m/s²
-#models:
-#  straight_two_phase:
-#    acc_slide: 0.0
-#    acc_roll: 0.0
-#    k_switch: 0.0
-#  chip_fixed_loss:
-#    damping_xy_first_hop: 0.0
-#    damping_xy_other_hops: 0.0
-#    damping_z: 0.0
+# Default values are from RoboCup 2026
+models:
+  straight_two_phase:
+    acc_slide: -3.40
+    acc_roll: -0.45
+    k_switch: 0.64
+  chip_fixed_loss:
+    damping_xy_first_hop: 0.55
+    damping_xy_other_hops: 0.88
+    damping_z: 0.54
 
 # Dynamically computed by VisionProcessor
 #calib:
