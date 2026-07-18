@@ -103,7 +103,7 @@ def load_geometry(path: Path) -> SSL_WrapperPacket:
 
 
 if __name__ == '__main__':
-    parser = parser_vision_network(argparse.ArgumentParser(prog='Geometry publisher'))
+    parser = argparse.ArgumentParser(prog='Geometry publisher')
     parser.add_argument('config', default='geometry.yml', help='Geometry configuration file')
     args = parser.parse_args()
 
@@ -112,7 +112,11 @@ if __name__ == '__main__':
     geometry: SSL_GeometryData = wrapper.geometry
     calib = geometry.calib
 
-    receiver = VisionSocket(args=args)
+    config = yaml_load(Path(args.config))
+    receiver = VisionSocket(
+        vision_ip=config['vision_ip'] if 'vision_ip' in config else '224.5.23.2',
+        vision_port=config['vision_port'] if 'vision_port' in config else 10006
+    )
     def update_cameras(received):
         if received.HasField('geometry'):
             for camera in received.geometry.calib:

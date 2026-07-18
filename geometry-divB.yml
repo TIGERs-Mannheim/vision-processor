@@ -2,9 +2,14 @@
 # The configuration structure below mirrors proto/ssl_vision_geometry.proto,
 # see there for a description of all parameters.
 
+# Vision multicast IP address
+#vision_ip: "224.5.23.2"
+# Vision multicast port
+#vision_port: 10006
+
 # SSL field markings that may be absent on lab/exhibition carpets.
 # Toggle off any line your physical field does not have; emitting markings
-# the camera cannot see disturbs calibration.
+# the camera cannot see disturbs refinement calibration.
 optional_field_lines:
   goal2goal: true     # CenterLine running end-to-end through the field center
   halfway: true       # HalfwayLine splitting the field across its width
