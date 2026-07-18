@@ -15,7 +15,7 @@
  */
 #include <yaml-cpp/yaml.h>
 #include <sys/stat.h>
-#include <iostream>
+#include "log.h"
 
 #include "cl_kernels.h"
 #include "Resources.h"
@@ -78,8 +78,7 @@ Resources::Resources(const std::string& configPath) : configPath(configPath) {
 
 	camId = config["cam_id"].as<int>(0);
 	if (camId < 0 || camId > 7) {
-		std::cerr << "[Resources] Invalid camera ID, must be >= 0 and <= 7: " << camId << std::endl;
-		exit(1);
+		FATAL("Invalid camera ID, must be >= 0 and <= 7: " << camId);
 	}
 
 	maxBlobs = getOptional(config["thresholds"])["blobs"].as<int>(2000);
@@ -177,7 +176,7 @@ void Resources::streamImage(CLImage &img) {
 	} else if(img.format == &PixelFormat::F32) {
 		kernel = f2nv12;
 	} else {
-		std::cerr << "[Resources] Unimplemented pixel format submitted for streaming." << std::endl;
+		WARN("Unimplemented pixel format submitted for streaming.");
 		return;
 	}
 
@@ -231,8 +230,8 @@ void Resources::reloadConfigIfChanged() {
 	try {
 		YAML::Node config = YAML::LoadFile(configPath);
 		applyTunables(config);
-		std::cout << "[Resources] Reloaded tunables from " << configPath << std::endl;
+		LOG("Reloaded tunables from " << configPath);
 	} catch(const YAML::Exception& e) {
-		std::cerr << "[Resources] Config reload failed, keeping previous values: " << e.what() << std::endl;
+		WARN("Config reload failed, keeping previous values: " << e.what());
 	}
 }

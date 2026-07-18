@@ -19,7 +19,7 @@
 #include "driver/cameradriver.h"
 
 #include <cmath>
-#include <iostream>
+#include "log.h"
 #include <cstring>
 #include <google/protobuf/util/message_differencer.h>
 #include <mutex>
@@ -31,7 +31,7 @@ UDPSocket::UDPSocket(const std::string& ip, uint16_t port) {
 	WSADATA wsaData;
     if (WSAStartup(0x0101, &wsaData))
     {
-        std::cerr << "Failed to initialize Windows socket API" << std::endl;
+        WARN("Failed to initialize Windows socket API");
         return;
     }
 #endif
@@ -39,7 +39,7 @@ UDPSocket::UDPSocket(const std::string& ip, uint16_t port) {
 	socket_ = socket(AF_INET, SOCK_DGRAM, 0);
 	if (socket_ < 0)
 	{
-		std::cerr << "Failed to open UDP socket" << std::endl;
+		WARN("Failed to open UDP socket");
 		return;
 	}
 
@@ -48,33 +48,33 @@ UDPSocket::UDPSocket(const std::string& ip, uint16_t port) {
 	iNetAddr->sin_port = htons(port);
 	if(!inet_aton(ip.c_str(), &iNetAddr->sin_addr))
 	{
-		std::cerr << "Invalid UDP target address " << ip << std::endl;
+		WARN("Invalid UDP target address " << ip);
 		return;
 	}
 
 	u_int yes = 1;
 	if (setsockopt(socket_, SOL_SOCKET, SO_REUSEADDR, (char*) &yes, sizeof(yes)) < 0) {
-		std::cerr << "Setting SO_REUSEADDR on UDP socket failed" << std::endl;
+		WARN("Setting SO_REUSEADDR on UDP socket failed");
 	}
 
   	if (setsockopt(socket_, SOL_SOCKET, SO_BROADCAST, (char*) &yes, sizeof(yes)) < 0) {
-		std::cerr << "Setting SO_BROADCAST on UDP socket failed" << std::endl;
+		WARN("Setting SO_BROADCAST on UDP socket failed");
 	}
 
 	int ttl = 32; 
 	if (setsockopt(socket_, IPPROTO_IP, IP_MULTICAST_TTL, (char*) &ttl, sizeof(ttl)) < 0) {
-			std::cerr << "Setting TTL failed" << std::endl;
+		WARN("Setting TTL failed");
 	}
 	
 	if(bind(socket_, &addr_, sizeof(addr_))) {
-		std::cerr << "Could not bind to multicast socket" << std::endl;
+		WARN("Could not bind to multicast socket");
 	}
 
 	struct ip_mreq mreq = {};
 	inet_pton(AF_INET, ip.c_str(), &mreq.imr_multiaddr);
 	inet_pton(AF_INET, "0.0.0.0", &mreq.imr_interface);
 	if (setsockopt(socket_, IPPROTO_IP, IP_ADD_MEMBERSHIP, (char*) &mreq, sizeof(mreq)) < 0) {
-		std::cerr << "Could not join multicast group" << std::endl;
+		WARN("Could not join multicast group " << ip);
 	}
 
 	receiver = std::thread(&UDPSocket::run, this);
@@ -95,7 +95,7 @@ void UDPSocket::send(const google::protobuf::Message& msg) {
 	std::string str;
 	msg.SerializeToString(&str);
 	if(sendto(socket_, str.data(), str.length(), 0, &addr_, sizeof(addr_)) < 0) {
-		std::cerr << "[UDPSocket] UDP Frame send failed: " << strerror(errno) << " " << strerrorname_np(errno) << std::endl;
+		WARN("UDP Frame send failed: " << strerror(errno) << " " << strerrorname_np(errno));
 	}
 }
 
@@ -108,7 +108,7 @@ void UDPSocket::run() {
 			return;
 
 		if (bytesRead < 0) {
-			std::cerr << "[UDPSocket] UDP Frame recv failed: " << strerror(errno) << " " << strerrorname_np(errno) << std::endl;
+			WARN("UDP Frame recv failed: " << strerror(errno) << " " << strerrorname_np(errno));
 			return;
 		}
 
@@ -124,7 +124,7 @@ void VisionSocket::geometryCheck() {
 			ballRadius = geometry.field().ball_radius();
 
 		geometryVersion++;
-		std::cout << "[VisionSocket] New geometry received" << std::endl;
+		LOG("New geometry received");
 	}
 	geometryMutex.unlock();
 }
@@ -274,7 +274,7 @@ void VisionSocket::updateTime() {
 
 	offset /= 2*cams;
 	if (offset < -0.010) {
-		std::cerr << "[UDPSocket] Large backwards time jump suppressed: " << offset << "s" << std::endl;
+		WARN("Large backwards time jump suppressed: " << offset << "s");
 		return;
 	}
 
@@ -319,11 +319,11 @@ void GCSocket::parse(char *data, int length) {
 
 	if(botHeights.find(referee.yellow().name()) != botHeights.end() && botHeights[referee.yellow().name()] != yellowBotHeight) {
 		yellowBotHeight = botHeights[referee.yellow().name()];
-		std::cout << "[GCSocket] Updated yellow bot height to " << yellowBotHeight << "mm" << std::endl;
+		LOG("Updated yellow bot height to " << yellowBotHeight << "mm");
 	}
 
 	if(botHeights.find(referee.blue().name()) != botHeights.end() && botHeights[referee.blue().name()] != blueBotHeight) {
 		blueBotHeight = botHeights[referee.blue().name()];
-		std::cout << "[GCSocket] Updated blue bot height to " << blueBotHeight << "mm" << std::endl;
+		LOG("Updated blue bot height to " << blueBotHeight << "mm");
 	}
 }

@@ -14,6 +14,7 @@
      limitations under the License.
  */
 #include "CameraModel.h"
+#include "log.h"
 
 
 float goalBoundaryWidth(const SSL_GeometryFieldSize& field) {
@@ -126,7 +127,7 @@ void CameraModel::ensureSize(const Eigen::Vector2i& newSize) {
 
 	const float factor = (float)newSize.x()/(float)size.x();
 	if((float)size.y()*factor != (float)newSize.y())
-		std::cerr << "[CameraModel] ensureSize with diverging aspect ratios" << std::endl;
+		WARN("ensureSize with diverging aspect ratios");
 
 	size = newSize;
 	focalLength *= factor;
@@ -161,7 +162,7 @@ Eigen::Vector3f CameraModel::image2field(const Eigen::Vector2f& p, const float h
 	camRay = i2fOrientation * camRay;
 
 	if(camRay.z() >= 0) {
-		//std::cerr << "[CameraModel] Transformation over horizon: " << p.transpose() << std::endl;
+		// Camera below carpet highly unlikely
 		return { NAN, NAN, NAN };
 	}
 

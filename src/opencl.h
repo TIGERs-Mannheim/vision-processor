@@ -22,7 +22,7 @@
 #endif
 
 #include <vector>
-#include <iostream>
+#include "log.h"
 #include <opencv2/core/mat.hpp>
 #include <map>
 
@@ -79,8 +79,7 @@ public:
 		cl_int error;
 		cl::Event event = functor(args, std::forward<Ts>(ts)..., error);
 		if(error != CL_SUCCESS) {
-			std::cerr << "[OpenCL] Enqueue kernel error: " << error << std::endl;
-			exit(1);
+			FATAL("Enqueue kernel error: " << error);
 		}
 		events.push_back(event);
 		return event;
@@ -120,8 +119,7 @@ public:
 		int error;
 		map = (T*) cl::enqueueMapBuffer(buffer, true, clRWType, 0, size, nullptr, nullptr, &error);
 		if(error != CL_SUCCESS) {
-			std::cerr << "[OpenCL] Enqueue map buffer error: " << error << std::endl;
-			exit(1);
+			FATAL("Enqueue map buffer error: " << error);
 		}
 	}
 	~CLMap() {
@@ -129,8 +127,7 @@ public:
 			cl::Event event;
 			int error = cl::enqueueUnmapMemObject(buffer, map, nullptr, &event);
 			if(error != CL_SUCCESS) {
-				std::cerr << "[OpenCL] Enqueue unmap buffer error: " << error << std::endl;
-				exit(1);
+				FATAL("Enqueue unmap buffer error: " << error);
 			}
 			OpenCL::wait(event);
 		}
@@ -224,8 +221,7 @@ public:
 		size_t region[]{(size_t)image.width, (size_t)image.height, 1};
 		map = (T*) clEnqueueMapImage(cl::CommandQueue::getDefault()(), image.image(), true, clRWType, origin, region, &bytePitch, nullptr, 0, nullptr, nullptr, &error);
 		if(error != CL_SUCCESS) {
-			std::cerr << "[OpenCL] Enqueue map image error: " << error << std::endl;
-			exit(1);
+			FATAL("Enqueue map image error: " << error);
 		}
 		rowPitch = bytePitch/sizeof(T);
 		cv = ::cv::Mat(image.height, image.width, image.format->cvType, map, bytePitch);
@@ -235,8 +231,7 @@ public:
 			cl::Event event;
 			int error = cl::enqueueUnmapMemObject(image, map, nullptr, &event);
 			if(error != CL_SUCCESS) {
-				std::cerr << "[OpenCL] Enqueue unmap image error: " << error << std::endl;
-				exit(1);
+				FATAL("Enqueue unmap image error: " << error);
 			}
 			OpenCL::wait(event);
 		}

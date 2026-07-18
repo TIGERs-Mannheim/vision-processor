@@ -16,7 +16,7 @@
 #include "Distortion.h"
 
 #include <eigen3/unsupported/Eigen/LevenbergMarquardt>
-#include <iostream>
+#include "log.h"
 
 static inline float pointError(const Eigen::Vector2f& n, const Eigen::Vector2f& u, const float d0) {
 	return n.transpose().dot(u) - d0;
@@ -61,8 +61,7 @@ static std::vector<float> lineError(const std::vector<Eigen::Vector2f>& undistor
 	for(const Eigen::Vector2f& u : undistorted) {
 		float pe = pointError(n, u, d0);
 		if(isnanf(pe)) {
-			std::cout << "NaNP: " << std::endl << n << std::endl << u << std::endl << d0 << " " << Ex << " " << Ey << std::endl;
-			exit(1);
+			FATAL("NaNP: " << std::endl << n << std::endl << u << std::endl << d0 << " " << Ex << " " << Ey);
 		}
 		error.push_back(pe);
 	}
@@ -115,7 +114,7 @@ bool calibrateDistortion(const std::vector<std::vector<Eigen::Vector2f>>& linePo
 	lm.minimize(k);
 
 	if((k(1) < 0.0f || k(2) < 0.0f || k(1) >= model.size.x() || k(2) >= model.size.y())) {
-		std::cout << "[Distortion] Principal point outside of image, aborting calibration for this frame" << std::endl;
+		LOG("Principal point outside of image, aborting calibration for this frame");
 		return false;
 	}
 

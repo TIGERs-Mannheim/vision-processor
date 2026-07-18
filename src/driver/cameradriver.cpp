@@ -85,6 +85,5 @@ std::unique_ptr<CameraDriver> openCamera(const CameraConfig& config) {
 	if(config.driverType == "OPENCV")
 		return std::make_unique<OpenCVDriver>(config);
 
-	std::cerr << "[Resources] Unknown camera/image driver defined: " << config.driverType << std::endl;
-	exit(1);
+	FATAL("Unknown camera/image driver defined: " << config.driverType);
 }

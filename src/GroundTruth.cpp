@@ -14,6 +14,7 @@
      limitations under the License.
  */
 #include "GroundTruth.h"
+#include "log.h"
 
 #include <yaml-cpp/yaml.h>
 
@@ -87,6 +88,5 @@ const SSL_DetectionFrame& getCorrespondingFrame(const std::vector<SSL_DetectionF
 			return frame;
 	}
 
-	std::cerr << "[GroundTruth] Ground truth for frame not in ground truth data requested. FrameId: " << frameId << std::endl;
-	exit(1);
+	FATAL("Ground truth for frame not in ground truth data requested. FrameId: " << frameId);
 }

@@ -19,6 +19,7 @@
 #include "Distortion.h"
 #include "LineDetection.h"
 #include "proto/ssl_vision_wrapper.pb.h"
+#include "log.h"
 
 #include <eigen3/unsupported/Eigen/LevenbergMarquardt>
 
@@ -355,12 +356,12 @@ static void directCalibrationRefinement(const Resources& r, const std::vector<st
 	lm.minimize(k);
 
 	if(lm.info() != Eigen::ComputationInfo::Success && lm.info() != Eigen::ComputationInfo::NoConvergence) { //xtol might be too aggressive
-		std::cerr << "[Geometry calibration] Unable to find matching field model, aborting calibration for this frame. (lm.info() no success)" << std::endl;
+		WARN("Unable to find matching field model, aborting calibration for this frame. (lm.info() no success)");
 		return;
 	}
 
 	if(calibHeight && k[6] < 0) { // camera below field
-		std::cerr << "[Geometry calibration] Unable to find matching field model, aborting calibration for this frame. (camera below field)" << std::endl;
+		WARN("Unable to find matching field model, aborting calibration for this frame. (camera below field)");
 		return;
 	}
 
@@ -426,7 +427,7 @@ static bool cornerCalibration(const Resources& r, const std::vector<std::vector<
 	std::vector<Eigen::Vector2f> edges = r.lineCorners;
 	std::sort(edges.begin(), edges.end(), [](const auto& l, const auto& r){ return r.y() > l.y() || (r.y() == l.y() && r.x() > l.x()); });
 	if(edges.size() != 4) {
-		std::cerr << "[Geometry calibration] Wrong line corner amount: " << edges.size() << "/4" << std::endl;
+		WARN("Wrong line corner amount: " << edges.size() << "/4");
 		return false;
 	}
 
@@ -493,7 +494,7 @@ static bool cornerCalibration(const Resources& r, const std::vector<std::vector<
 	} while(std::next_permutation(edges.begin(), edges.end(), [](const auto& l, const auto& r){ return r.y() > l.y() || (r.y() == l.y() && r.x() > l.x()); }));
 
 	if(minError == INFINITY) {
-		std::cerr << "[Geometry calibration] Unable to find matching field model, aborting calibration for this frame." << std::endl;
+		WARN("Unable to find matching field model, aborting calibration for this frame.");
 		return false;
 	}
 
@@ -524,7 +525,7 @@ void geometryCalibration(const Resources& r, const CLImage& rgba) {
 
 	const int halfLineWidth = halfLineWidthEstimation(r, gray);
 	diag.half_line_width = halfLineWidth;
-	std::cout << "[Geometry calibration] Half line width: " << halfLineWidth << std::endl;
+	LOG("Half line width: " << halfLineWidth);
 
 	cv::Mat thresholded(gray.rows, gray.cols, CV_8UC1, 0.0);
 	thresholdImage(r, gray, halfLineWidth, thresholded);
@@ -547,12 +548,12 @@ void geometryCalibration(const Resources& r, const CLImage& rgba) {
 			lines.emplace_back(a, b);
 	}
 	diag.raw_line_segments = (int)lines.size();
-	std::cout << "[Geometry calibration] Line segments: " << lines.size() << std::endl;
+	LOG("Line segments: " << lines.size());
 
 	const std::vector<CVLines> compoundLines = groupLineSegments(r, lines);
 	const CVLines mergedLines = mergeLineSegments(compoundLines);
 	diag.merged_line_count = (int)mergedLines.size();
-	std::cout << "[Geometry calibration] Lines: " << mergedLines.size() << std::endl;
+	LOG("Lines: " << mergedLines.size());
 
 	std::vector<std::vector<Eigen::Vector2f>> mergedPixels(mergedLines.size());
 	{
@@ -595,7 +596,7 @@ void geometryCalibration(const Resources& r, const CLImage& rgba) {
 
 	model.updateDerived();
 	int error = modelError(r, model, linePixels);
-	std::cout << "[Geometry calibration] Best model: " << model << " error " << (error/(float)linePixels.size()) << std::endl;
+	LOG("Best model: " << model << " error " << (error/(float)linePixels.size()));
 
 	diag.focal_length = model.focalLength;
 	diag.position = model.pos;

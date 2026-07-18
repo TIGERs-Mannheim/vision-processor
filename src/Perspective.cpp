@@ -16,6 +16,7 @@
 #include "Perspective.h"
 #include "pattern.h"
 #include "proto/ssl_vision_wrapper.pb.h"
+#include "log.h"
 
 #include <cmath>
 
@@ -88,7 +89,7 @@ void Perspective::geometryCheck(const int width, const int height, const double 
 		}
 	}
 	fieldScale = fieldScaleSum / (float)n * resamplingFactor;
-	std::cout << "[Perspective] Field scale: " << minFieldScale << "mm/px < " << fieldScale << "mm/px < " << maxFieldScale << "mm/px" << std::endl;
+	LOG("Field scale: " << minFieldScale << "mm/px < " << fieldScale << "mm/px < " << maxFieldScale << "mm/px");
 
 	//update visibleFieldExtent
 	Eigen::Vector2f center = model.image2field({0.0f, 0.0f}, (float)maxBotHeight).head<2>();
@@ -120,7 +121,7 @@ void Perspective::geometryCheck(const int width, const int height, const double 
 	if(reprojectedFieldSize[1] % 2)
 		reprojectedFieldSize[1]++;
 
-	std::cout << "[Perspective] Visible field extent: " << visibleFieldExtent.transpose() << "mm (xmin,xmax,ymin,ymax) Field scale: " << fieldScale << "mm/px" << std::endl;
+	LOG("Visible field extent: " << visibleFieldExtent.transpose() << "mm (xmin,xmax,ymin,ymax) Field scale: " << fieldScale << "mm/px");
 }
 
 Eigen::Vector2f Perspective::flat2field(const Eigen::Vector2f& pos) const {

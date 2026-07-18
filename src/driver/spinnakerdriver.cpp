@@ -17,7 +17,7 @@
 
 #include "spinnakerdriver.h"
 
-#define CATCH_SPINNAKER(f) try { f; } catch (Spinnaker::Exception &e) { std::cerr << "[Spinnaker] Could not set parameter: " << e.GetFullErrorMessage() << std::endl; }
+#define CATCH_SPINNAKER(f) try { f; } catch (Spinnaker::Exception &e) { WARN("Could not set parameter: " << e.GetFullErrorMessage()); }
 
 
 class SpinnakerImage : public RawImage {
@@ -44,12 +44,12 @@ SpinnakerDriver::SpinnakerDriver(const CameraConfig& config) {
 		if (camList.GetSize() > config.hardwareId) {
 			pCam = camList.GetByIndex(config.hardwareId);
 			pCam->Init();
-			std::cout << "[Spinnaker] Opened " << pCam->DeviceModelName.GetValue() << " - " << pCam->DeviceSerialNumber.GetValue().c_str() << std::endl;
+			LOG("Opened " << pCam->DeviceModelName.GetValue() << " - " << pCam->DeviceSerialNumber.GetValue().c_str());
 			camList.Clear();
 			break;
 		}
 
-		std::cerr << "[Spinnaker] Waiting for cam: " << camList.GetSize() << "/" << (config.hardwareId+1) << std::endl;
+		WARN("Waiting for cam: " << camList.GetSize() << "/" << (config.hardwareId+1));
 
 		camList.Clear();
 		sleep(1);
@@ -165,7 +165,7 @@ std::shared_ptr<RawImage> SpinnakerDriver::borrow(const Spinnaker::ImagePtr& pIm
 		}
 	}
 
-	std::cerr << "[Spinnaker] Did not get image with given buffer, creating new buffer; expect OpenCL performance degradation" << std::endl;
+	WARN("Did not get image with given buffer, creating new buffer; expect OpenCL performance degradation");
 	std::shared_ptr<RawImage> image = std::make_shared<RawImage>(&PixelFormat::RGGB8, (int)pImage->GetWidth() / 2, (int)pImage->GetHeight() / 2, (unsigned char*)pImage->GetData());
 	pImage->Release();
 	return image;

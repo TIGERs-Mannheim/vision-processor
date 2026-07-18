@@ -14,7 +14,7 @@
      limitations under the License.
  */
 #include <csignal>
-#include <iostream>
+#include "log.h"
 #include <opencv2/bgsegm.hpp>
 #include <yaml-cpp/yaml.h>
 
@@ -313,7 +313,7 @@ int main(int argc, char* argv[]) {
 				}
 
 				if(counterMap[0] > r.maxBlobs)
-					std::cerr << "[main] max blob amount reached: " << counterMap[0] << "/" << r.maxBlobs << std::endl;
+					WARN("max blob amount reached: " << counterMap[0] << "/" << r.maxBlobs);
 			}
 
 			std::list<std::unique_ptr<BotHypothesis>> botHypotheses;
@@ -362,7 +362,7 @@ int main(int argc, char* argv[]) {
 
 #if BENCHMARK
 			detection->set_t_sent(startTime + processingTime);
-			std::cout << "[main] time " << processingTime * 1000.0 << " ms " << matches.size() << " blobs " << detection->balls().size() << " balls " << (detection->robots_yellow_size() + detection->robots_blue_size()) << " bots" << std::endl;
+			LOG("time " << processingTime * 1000.0 << " ms " << matches.size() << " blobs " << detection->balls().size() << " balls " << (detection->robots_yellow_size() + detection->robots_blue_size()) << " bots");
 			r.openCl->printRuntimes();
 #else
 			detection->set_t_sent(r.camera->getTime());
@@ -372,7 +372,7 @@ int main(int argc, char* argv[]) {
 			r.openCl->clearEvents();
 
 			if(processingTime > r.camera->expectedFrametime())
-				std::cout << "[main] frame time overrun: " << processingTime * 1000.0 << " ms " << matches.size() << " blobs " << detection->balls().size() << " balls " << (detection->robots_yellow_size() + detection->robots_blue_size()) << " bots" << std::endl;
+				LOG("frame time overrun: " << processingTime * 1000.0 << " ms " << matches.size() << " blobs " << detection->balls().size() << " balls " << (detection->robots_yellow_size() + detection->robots_blue_size()) << " bots");
 
 			if(r.rawFeed) {
 				r.streamQuad(channels);
@@ -417,11 +417,11 @@ int main(int argc, char* argv[]) {
 				r.snapshotWriter->offer(r.quad2rgba(channels), "img/" + std::to_string(r.camId) + ".raw.jpg");
 				lastDebugSaveTime = realStartTime;
 				if(frameId == 100)
-					std::cout << "[main] Saved sample image" << std::endl;
+					LOG("Saved sample image");
 			}
 		}
 	}
 
-	std::cout << "Stopping vision_processor" << std::endl;
+	LOG("Stopping vision_processor");
 	return 0;
 }

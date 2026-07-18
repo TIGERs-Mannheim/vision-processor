@@ -30,7 +30,7 @@ private:
 
 MVImpactDriver::MVImpactDriver(const CameraConfig& config) {
 	while(devMgr.deviceCount() <= config.hardwareId) {
-		std::cerr << "[mvIMPACT] Waiting for cam: " << devMgr.deviceCount() << "/" << (config.hardwareId+1) << std::endl;
+		WARN("Waiting for cam: " << devMgr.deviceCount() << "/" << (config.hardwareId+1));
 		sleep(1);
 		devMgr.updateDeviceList();
 	}
@@ -40,8 +40,7 @@ MVImpactDriver::MVImpactDriver(const CameraConfig& config) {
 	try {
 		device->open();
 	} catch(mvIMPACT::acquire::ImpactAcquireException& e) {
-		std::cerr << "[mvIMPACT] Error while opening the camera: " << e.getErrorCodeAsString() << " " << e.getErrorString() << std::endl;
-		exit(1);
+		FATAL("Error while opening the camera: " << e.getErrorCodeAsString() << " " << e.getErrorString());
 	}
 
 	SettingsBlueFOX settings(device);
@@ -103,7 +102,7 @@ std::shared_ptr<RawImage> MVImpactDriver::readImage() {
 		request = newerRequest;
 
 	if(!request->isOK()) {
-		std::cerr << "[mvIMPACT] Error while acquiring image: " << request->requestResult.readS() << std::endl;
+		WARN("Error while acquiring image: " << request->requestResult.readS());
 		return nullptr;
 	}
 

@@ -15,9 +15,8 @@
  */
 #include "snapshotwriter.h"
 
-#include <cstdio>
 #include <fstream>
-#include <iostream>
+#include "log.h"
 #include <utility>
 #include <vector>
 
@@ -54,7 +53,7 @@ static bool encodeJpeg(const CLImage& image, std::vector<uchar>& encoded) {
 	} else if(image.format == &PixelFormat::F32) {
 		cv::convertScaleAbs(image.read<float>().cv, encodable, 1.0, 127.0);
 	} else {
-		std::cerr << "[SnapshotWriter] unsupported pixel format" << std::endl;
+		WARN("unsupported pixel format");
 		return false;
 	}
 	return cv::imencode(".jpg", encodable, encoded, jpegParams);
@@ -65,13 +64,13 @@ static void writeAtomic(const std::string& path, const std::vector<uchar>& bytes
 	{
 		std::ofstream out(tmpPath, std::ios::binary);
 		if(!out) {
-			std::cerr << "[SnapshotWriter] open failed: " << tmpPath << std::endl;
+			WARN("open failed: " << tmpPath);
 			return;
 		}
 		out.write(reinterpret_cast<const char*>(bytes.data()), bytes.size());
 	}
 	if(std::rename(tmpPath.c_str(), path.c_str()) != 0) {
-		std::cerr << "[SnapshotWriter] rename failed: " << tmpPath << " -> " << path << std::endl;
+		WARN("rename failed: " << tmpPath << " -> " << path);
 		std::remove(tmpPath.c_str());
 	}
 }
@@ -91,11 +90,11 @@ void SnapshotWriter::run() {
 			std::vector<uchar> encoded;
 			try {
 				if(!encodeJpeg(*image, encoded)) {
-					std::cerr << "[SnapshotWriter] encode failed: " << path << std::endl;
+					WARN("encode failed: " << path);
 					continue;
 				}
 			} catch(const cv::Exception& e) {
-				std::cerr << "[SnapshotWriter] encode error for " << path << ": " << e.what() << std::endl;
+				WARN("encode error for " << path << ": " << e.what());
 				continue;
 			}
 			writeAtomic(path, encoded);

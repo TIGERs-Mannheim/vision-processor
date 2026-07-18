@@ -16,7 +16,6 @@
 #include "opencl.h"
 #include "cl_kernels.h"
 
-#include <iostream>
 #include <utility>
 #include <opencv2/imgcodecs.hpp>
 #include <opencv2/imgproc.hpp>
@@ -37,13 +36,11 @@ OpenCL::OpenCL() {
 	cl::Platform::get(&platforms);
 
 	if (platforms.empty()) {
-		std::cerr << "[OpenCL] No platforms found. Check OpenCL installation!" << std::endl;
-		exit(1);
+		FATAL("No platforms found. Check OpenCL installation!");
 	}
 
 	if(!searchDevice(platforms, CL_DEVICE_TYPE_GPU) && !searchDevice(platforms, CL_DEVICE_TYPE_ALL)) {
-		std::cerr << "[OpenCL] No GPU devices found. Check OpenCL installation!" << std::endl;
-		exit(1);
+		FATAL("No GPU devices found. Check OpenCL installation!");
 	}
 
 	context = cl::Context(device);
@@ -59,7 +56,7 @@ bool OpenCL::searchDevice(const std::vector<cl::Platform>& platforms, cl_device_
 
 		for(cl::Device& d : devices) {
 			device = d;
-			std::cout << "[OpenCL] Using device: " << platform.getInfo<CL_PLATFORM_NAME>() << " » " << device.getInfo<CL_DEVICE_NAME>() << std::endl;
+			LOG("Using device: " << platform.getInfo<CL_PLATFORM_NAME>() << " » " << device.getInfo<CL_DEVICE_NAME>());
 			return true;
 		}
 	}
@@ -73,19 +70,16 @@ cl::Kernel OpenCL::compile(const char *code, const std::string &options) {
 
 	cl::Program program(context, sources);
 	if (program.build({device}, options.c_str()) != CL_SUCCESS) {
-		std::cerr << "[OpenCL] Error during kernel compilation: " << program.getBuildInfo<CL_PROGRAM_BUILD_LOG>(device) << std::endl;
-		exit(1);
+		FATAL("[OpenCL] Error during kernel compilation: " << program.getBuildInfo<CL_PROGRAM_BUILD_LOG>(device));
 	}
 
 	std::vector<cl::Kernel> kernels;
 	int error = program.createKernels(&kernels);
 	if(error != CL_SUCCESS) {
-		std::cerr << "[OpenCL] Error during kernel creation: " << error << std::endl;
-		exit(1);
+		FATAL("Error during kernel creation: " << error);
 	}
 	if(kernels.empty()) {
-		std::cerr << "[OpenCL] Kernel missing: " << code << std::endl;
-		exit(1);
+		FATAL("Kernel missing: " << code);
 	}
 	return kernels[0];
 }
@@ -93,8 +87,7 @@ cl::Kernel OpenCL::compile(const char *code, const std::string &options) {
 void OpenCL::wait(const cl::Event& event) {
 	int error = event.wait();
 	if(error != CL_SUCCESS) {
-		std::cerr << "[OpenCL] Error during kernel execution: " << error << std::endl;
-		exit(1);
+		FATAL("Error during kernel execution: " << error);
 	}
 }
 
@@ -145,8 +138,7 @@ static inline cl::Buffer clAlloc(cl_mem_flags type, cl::size_type size, void* da
 	int error;
 	cl::Buffer buffer(type | CL_MEM_READ_WRITE, size, data, &error);
 	if(error != CL_SUCCESS) {
-		std::cerr << "[OpenCL] Error during image allocation: " << error << std::endl;
-		exit(1);
+		FATAL("Error during image allocation: " << error);
 	}
 	return buffer;
 }
@@ -158,8 +150,7 @@ static inline cl::Image2D allocImage(int width, int height, const PixelFormat* f
 	int error;
 	cl::Image2D image = cl::Image2D(cl::Context::getDefault(), CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR, format->clFormat, width, height, 0, nullptr, &error);
 	if(error != CL_SUCCESS) {
-		std::cerr << "[OpenCL] Image creation error: " << error << " " << width << "," << height << " " << (format == &PixelFormat::RGBA8) << std::endl;
-		exit(1);
+		FATAL("Image creation error: " << error << " " << width << "," << height << " " << (format == &PixelFormat::RGBA8));
 	}
 	return image;
 }

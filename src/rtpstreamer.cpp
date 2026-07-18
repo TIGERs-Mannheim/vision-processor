@@ -16,7 +16,7 @@
 #include "rtpstreamer.h"
 
 #include <cstdlib>
-#include <iostream>
+#include "log.h"
 
 extern "C" {
 #include <libavcodec/avcodec.h>
@@ -93,11 +93,10 @@ void RTPStreamer::allocResources() {
 	}
 
 	if(codecCtx == nullptr) {
-		std::cerr << "[RtpStreamer] Failed to find suitable encoder." << std::endl;
-		exit(1);
+		FATAL("Failed to find suitable encoder.");
 	}
 
-	std::cout << "[RtpStreamer] Using codec: " << codec->long_name << std::endl;
+	LOG("Using codec: " << codec->long_name);
 
 	fmtCtx  = avformat_alloc_context();
 	auto* avFormat = (AVOutputFormat*)av_guess_format("rtp", nullptr, nullptr);
@@ -111,8 +110,7 @@ void RTPStreamer::allocResources() {
 
 	int write = avformat_write_header(fmtCtx, nullptr);
 	if(write < 0) {
-		std::cerr << "[RtpStreamer] Failed to write header: " << write << std::endl;
-		exit(1);
+		FATAL("Failed to write header: " << write);
 	}
 
 	frame = av_frame_alloc();
@@ -192,7 +190,7 @@ void RTPStreamer::encoderRun() {
 		} else if(status == AVERROR(EAGAIN)) {
 			// Encoder needs some more frames
 		} else {
-			std::cerr << "[RtpStreamer] Encoder error: " << status << std::endl;
+			WARN("Encoder error: " << status);
 		}
 
 		std::this_thread::sleep_for(std::chrono::microseconds(frametime_us) - (std::chrono::high_resolution_clock::now() - startTime));
