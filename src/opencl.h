@@ -158,11 +158,16 @@ class CLArray {
 public:
 	explicit CLArray(int size);
 	CLArray(void* data, int size);
+	~CLArray();
 
 	template<typename T> CLMap<T> read() const { return CLMap<T>(buffer, size, CL_MAP_READ); }
 	template<typename T> CLMap<T> write() { return CLMap<T>(buffer, size, CL_MAP_WRITE_INVALIDATE_REGION); }
 	template<typename T> CLMap<T> readWrite() { return CLMap<T>(buffer, size, CL_MAP_WRITE); }
 
+private:
+	const void* ptr;
+
+public:
 	const cl::Buffer buffer;
 	const int size;
 };
