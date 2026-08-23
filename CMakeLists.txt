@@ -58,20 +58,17 @@ link_libraries("m" "stdc++" ${YAML_CPP_LIBRARIES} ${OpenCV_LIBS} PkgConfig::LIBA
 include_directories(SYSTEM ${YAML_INCLUDE_DIRS} ${OpenCV_INCLUDE_DIRS} ${SPINNAKER_INCLUDE_DIRS} Eigen3::Eigen ${mvIMPACT_INCLUDE_DIRS})
 
 include_directories(src)
-# Generated .pb.h files include their siblings by the protoc canonical name
-# ("vision/x.pb.h"), so PROTOC_OUT_DIR is on the include path as well.
-# Project code includes them as "proto/vision/x.pb.h" via include_directories(src).
+
 set(PROTOC_OUT_DIR "${CMAKE_SOURCE_DIR}/src/proto")
 include_directories("${PROTOC_OUT_DIR}")
+
+# league proto repository provides a generator function that fixes OUT_DIR limitations with protoc provided function
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/proto/cmake")
 include(SSLProtocolDefs)
-
 set(PROTO_FILES
         vision/ssl_vision_detection.proto
-        vision/ssl_vision_detection_tracked.proto
         vision/ssl_vision_geometry.proto
         vision/ssl_vision_wrapper.proto
-        vision/ssl_vision_wrapper_tracked.proto
         gamecontroller/ssl_gc_common.proto
         gamecontroller/ssl_gc_game_event.proto
         gamecontroller/ssl_gc_geometry.proto
