@@ -13,7 +13,7 @@ import struct
 
 from google.protobuf.message import DecodeError
 
-from proto.ssl_vision_wrapper_pb2 import SSL_WrapperPacket
+from proto.vision.ssl_vision_wrapper_pb2 import SSL_WrapperPacket
 from wrapper_backend.bus import Bus
 
 log = logging.getLogger("wrapper_backend.multicast")

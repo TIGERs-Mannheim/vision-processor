@@ -24,7 +24,7 @@ from xml.etree import ElementTree
 import yaml
 
 from geom_publisher import load_geometry, yaml_load
-from proto.ssl_vision_wrapper_pb2 import SSL_WrapperPacket
+from proto.vision.ssl_vision_wrapper_pb2 import SSL_WrapperPacket
 
 
 def parser_test_data(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:

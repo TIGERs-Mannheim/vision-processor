@@ -16,7 +16,7 @@
 #pragma once
 #include <eigen3/Eigen/Geometry>
 
-#include "proto/ssl_vision_geometry.pb.h"
+#include "proto/vision/ssl_vision_geometry.pb.h"
 
 float goalBoundaryWidth(const SSL_GeometryFieldSize& field);
 

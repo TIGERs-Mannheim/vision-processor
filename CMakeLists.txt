@@ -58,7 +58,32 @@ link_libraries("m" "stdc++" ${YAML_CPP_LIBRARIES} ${OpenCV_LIBS} PkgConfig::LIBA
 include_directories(SYSTEM ${YAML_INCLUDE_DIRS} ${OpenCV_INCLUDE_DIRS} ${SPINNAKER_INCLUDE_DIRS} Eigen3::Eigen ${mvIMPACT_INCLUDE_DIRS})
 
 include_directories(src)
-file(GLOB PROTO_FILES proto/*.proto)
+# Generated .pb.h files include their siblings by the protoc canonical name
+# ("vision/x.pb.h"), so PROTOC_OUT_DIR is on the include path as well.
+# Project code includes them as "proto/vision/x.pb.h" via include_directories(src).
+set(PROTOC_OUT_DIR "${CMAKE_SOURCE_DIR}/src/proto")
+include_directories("${PROTOC_OUT_DIR}")
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/proto/cmake")
+include(SSLProtocolDefs)
+
+set(PROTO_FILES
+        vision/ssl_vision_detection.proto
+        vision/ssl_vision_detection_tracked.proto
+        vision/ssl_vision_geometry.proto
+        vision/ssl_vision_wrapper.proto
+        vision/ssl_vision_wrapper_tracked.proto
+        gamecontroller/ssl_gc_common.proto
+        gamecontroller/ssl_gc_game_event.proto
+        gamecontroller/ssl_gc_geometry.proto
+        gamecontroller/ssl_gc_referee_message.proto
+)
+ssl_protocol_defs_generate_cpp(
+        OUT_DIR "${PROTOC_OUT_DIR}"
+        PROTOS ${PROTO_FILES}
+        SOURCES_VAR PROTO_SRCS
+        HEADERS_VAR PROTO_HDRS
+)
+
 file(GLOB CL_KERNELS RELATIVE "${CMAKE_SOURCE_DIR}" kernel/*.cl)
 file(GLOB_RECURSE SRC src/*.cpp src/*.c)
 list(REMOVE_ITEM SRC "${CMAKE_SOURCE_DIR}/src/main.cpp" "${CMAKE_SOURCE_DIR}/src/geometry_benchmark.cpp" "${CMAKE_SOURCE_DIR}/src/blob_benchmark.cpp")
@@ -95,10 +120,8 @@ if(NOT "${CL_KERNEL_ASM_OLD}" STREQUAL "${CL_KERNEL_ASM}")
     message(STATUS "(Re-)Generated cl_kernels.S")
 endif()
 
-add_custom_target(AUTOGENERATE DEPENDS "src/cl_kernels.S")
+add_custom_target(AUTOGENERATE DEPENDS "src/cl_kernels.S" ${PROTO_SRCS} ${PROTO_HDRS})
 set_property(SOURCE "src/cl_kernels.S" APPEND PROPERTY OBJECT_DEPENDS ${CL_KERNEL_PATHS})
-protobuf_generate(TARGET AUTOGENERATE LANGUAGE cpp PROTOC_OUT_DIR "${CMAKE_SOURCE_DIR}/src" PROTOS ${PROTO_FILES})
-get_property(PROTO_SRCS TARGET AUTOGENERATE PROPERTY SOURCES)
 list(APPEND SRC ${PROTO_SRCS} "src/cl_kernels.S")
 
 add_executable(${PROJECT_NAME} ${SRC} "src/main.cpp")

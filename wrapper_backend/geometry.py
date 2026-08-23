@@ -16,11 +16,11 @@ from pathlib import Path
 import yaml
 from google.protobuf.json_format import ParseDict
 
-from proto.ssl_vision_geometry_pb2 import (
+from proto.vision.ssl_vision_geometry_pb2 import (
     SSL_FieldShapeType,
     SSL_GeometryData,
 )
-from proto.ssl_vision_wrapper_pb2 import (
+from proto.vision.ssl_vision_wrapper_pb2 import (
     SSL_SOURCE_VISION_PROCESSOR,
     SSL_WrapperPacket,
 )

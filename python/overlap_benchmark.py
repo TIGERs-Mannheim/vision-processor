@@ -25,7 +25,7 @@ import json
 from binary import parser_binary, run_binary
 from dataset import parser_test_data, iterate_field, Dataset
 from geom_publisher import load_geometry
-from proto.ssl_vision_detection_pb2 import SSL_DetectionRobot, SSL_DetectionBall
+from proto.vision.ssl_vision_detection_pb2 import SSL_DetectionRobot, SSL_DetectionBall
 from blob_benchmark import AvgValue
 from visionsocket import parser_vision_network, VisionRecorder
 

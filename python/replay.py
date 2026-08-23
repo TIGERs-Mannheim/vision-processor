@@ -20,8 +20,8 @@ import time
 from pathlib import Path
 
 from google.protobuf.json_format import ParseDict
-from proto.ssl_vision_wrapper_pb2 import SSL_WrapperPacket
-from proto.ssl_vision_detection_pb2 import SSL_DetectionFrame
+from proto.vision.ssl_vision_wrapper_pb2 import SSL_WrapperPacket
+from proto.vision.ssl_vision_detection_pb2 import SSL_DetectionFrame
 from visionsocket import parser_vision_network, VisionSocket
 from geom_publisher import load_geometry
 

@@ -19,8 +19,8 @@
 #include <yaml-cpp/yaml.h>
 
 #include "CameraModel.h"
-#include "proto/ssl_vision_geometry.pb.h"
-#include "proto/ssl_vision_wrapper.pb.h"
+#include "proto/vision/ssl_vision_geometry.pb.h"
+#include "proto/vision/ssl_vision_wrapper.pb.h"
 #include "Resources.h"
 #include "calib/GeomModel.h"
 #include "pattern.h"
