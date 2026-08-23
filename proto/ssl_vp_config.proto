@@ -94,6 +94,9 @@ message SSL_VPConfigThresholds {
     // Added tolerance to geometry related operations in mm.
     // Affects field border cutoff area and field line blob classification.
     optional float geometry_tolerance = 6 [default=10.0];
+
+    // Maximum amount of blobs processed per frame. Should not be necessary to adjust this value.
+    //optional uint32 blobs = 7 [default=2000];
 }
 
 message Color {
