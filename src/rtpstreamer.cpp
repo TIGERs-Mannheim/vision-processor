@@ -14,8 +14,6 @@
      limitations under the License.
  */
 #include "rtpstreamer.h"
-
-#include <cstdlib>
 #include "log.h"
 
 extern "C" {

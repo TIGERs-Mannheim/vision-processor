@@ -68,27 +68,6 @@ static float sqPointLineSegmentDistance(const std::pair<Eigen::Vector2f, Eigen::
 	return delta.dot(delta);
 }
 
-static float minPointModelDistance(const std::vector<std::pair<Eigen::Vector2f, Eigen::Vector2f>>& lines, const std::vector<LineArc>& arcs, const Eigen::Vector2f& fieldPixel) {
-	float distance = MAXFLOAT;
-	for(const auto& line : lines) {
-		distance = std::min(distance, sqPointLineSegmentDistance(line, fieldPixel));
-	}
-
-	distance = sqrtf(distance);
-
-	for(const auto& arc : arcs) {
-		const Eigen::Vector2f pixel2center = fieldPixel - arc.center;
-		/*float angle = atan2f(pixel2center.y(), pixel2center.x());
-		if(angle < 0)
-			angle += 2*M_PI;*/
-
-		//TODO cases outside of angle >= arc.a1 && angle <= arc.a2
-		distance = std::min(distance, abs(sqrtf(pixel2center.dot(pixel2center)) - arc.radius));
-	}
-
-	return distance;
-}
-
 struct DirectGeometryFit : public Eigen::DenseFunctor<float> {
 	const std::vector<Eigen::Vector2f>& linePixels;
 	const std::vector<std::vector<Eigen::Vector2f>>& mergedPixels;
@@ -150,18 +129,11 @@ struct DirectGeometryFit : public Eigen::DenseFunctor<float> {
 			fvec[i++] = min;
 		}
 
-		/*for(const Eigen::Vector2f& pixel : linePixels) {
-			Eigen::Vector2f field = model.image2field(pixel, 0.0f).head<2>();
-			fvec[i++] = minPointModelDistance(lines, arcs, field);
-			//fvec[i++] = sqrtf(minPointModelDistance(lines, arcs, field)); //sqrtf-model
-		}*/
-
 		return 0;
 	}
 
 	int values() const {
 		return modelPoints.size();
-		//return linePixels.size();
 	}
 };
 
@@ -562,7 +534,7 @@ void geometryCalibration(const Resources& r, const CLImage& rgba) {
 			for (int x = 0; x < thresholded.cols; x++) {
 				if(thresholded.at<uint8_t>(y, x)) {
 					for(unsigned int i = 0; i < compoundLines.size(); i++) {
-						if(dist(mergedLines[i].first, mergedLines[i].second) < thresholded.rows/2)
+						if(dist(mergedLines[i].first, mergedLines[i].second) < thresholded.rows/2.0f)
 							continue;
 
 						for(const auto& segment : compoundLines[i]) {

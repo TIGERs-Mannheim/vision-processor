@@ -164,8 +164,8 @@ void filterStddevScore(std::list<std::unique_ptr<T>>& bots, float threshold) {
 
 static inline bool closerThanCamEdgeDistance(const Resources& r, const Eigen::Vector2f& pos, const Eigen::Vector2f& border) {
 	const SSL_GeometryFieldSize& field = r.perspective->field;
-	const float halfFieldLength = field.field_length()/2 + goalBoundaryWidth(field);
-	const float halfFieldWidth = field.field_width()/2 + field.boundary_width();
+	const float halfFieldLength = field.field_length()/2.0f + goalBoundaryWidth(field);
+	const float halfFieldWidth = field.field_width()/2.0f + field.boundary_width();
 
 	Eigen::Vector2f borderPos = r.perspective->model.image2field(border, (float)r.gcSocket->maxBotHeight).head<2>();
 

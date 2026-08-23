@@ -16,8 +16,12 @@
 #include "cameradriver.h"
 
 #include "driver/opencvdriver.h"
+#ifdef SPINNAKER
 #include "driver/spinnakerdriver.h"
+#endif
+#ifdef MVIMPACT
 #include "driver/mvimpactdriver.h"
+#endif
 
 #include <yaml-cpp/yaml.h>
 

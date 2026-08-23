@@ -177,7 +177,7 @@ void CameraModel::updateEuler(const Eigen::Vector3f &euler) {
 }
 
 Eigen::Vector3f CameraModel::getEuler() {
-	return f2iOrientation.toRotationMatrix().eulerAngles(0, 1, 2);
+	return f2iOrientation.toRotationMatrix().canonicalEulerAngles(0, 1, 2);
 }
 
 
