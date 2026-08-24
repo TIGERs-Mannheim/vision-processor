@@ -64,15 +64,6 @@ message SSL_VPConfigGeometry {
     // Enable field line pixel refinement.
     // Disable in cluttered environments when the geometry calibration has failed multiple times in a row.
     optional bool refinement = 4 [default=true];
-
-    // Minimum brightness difference to surrounding pixels for the classification as field line pixel (0 - 255)
-    //optional uint32 field_line_threshold = 5 [default = 5];
-    // Minimum length of line segments to ensure angular stability in pixels
-    //optional float min_line_segment_length = 6 [default=10.0];
-    // Maximum perpendicular offset of line segments for merging in pixels
-    //optional float max_line_segment_offset = 7 [default=10.0];
-    // Maximum relative angle of line segments for merging in °
-    //optional float max_line_segment_angle = 8 [default=3.0];
 }
 
 message SSL_VPConfigThresholds {
@@ -94,9 +85,6 @@ message SSL_VPConfigThresholds {
     // Added tolerance to geometry related operations in mm.
     // Affects field border cutoff area and field line blob classification.
     optional float geometry_tolerance = 6 [default=10.0];
-
-    // Maximum amount of blobs processed per frame. Should not be necessary to adjust this value.
-    //optional uint32 blobs = 7 [default=2000];
 }
 
 message Color {
@@ -127,13 +115,6 @@ message SSL_VPConfigColor {
     optional VPColor pink = 8;
 }
 
-message SSL_VPConfigTracking {
-    // Min tracking radius in mm
-    //optional float min_tracking_radius = 1 [default=20.0];
-    // Max tracked bot acceleration in m/s^2
-    //optional float max_bot_acceleration = 2 [default=6.5];
-}
-
 message SSL_VPConfigNetwork {
     // Game controller ip address
     optional string gc_ip = 1 [default="224.5.23.1"];
@@ -162,8 +143,8 @@ message SSL_VPConfigStream {
 }
 
 message SSL_VPConfig {
-    // Unique number (e.g. process id) on the local machine to distinguish multiple unconfigured instances.
-    required uint32 instance = 1;
+    // Persistent human-readable network unique identifier (e.g. hostname or hostname:suffix if multiple VP instances on the same host).
+    required string instance = 1;
     // Corresponding to the camera_id used in SSL_DetectionFrame. Unique per field and implies position on the field:
     // Single camera field: 0 = global field
     // Double camera field: 0 = -x side, 1 = +x side
@@ -179,10 +160,9 @@ message SSL_VPConfig {
     optional SSL_VPConfigGeometry geometry = 5;
     optional SSL_VPConfigThresholds thresholds = 6;
     optional SSL_VPConfigColor color = 7;
-    optional SSL_VPConfigTracking tracking = 8;
-    optional SSL_VPConfigNetwork network = 9;
-    optional SSL_VPConfigStream stream = 10;
+    optional SSL_VPConfigNetwork network = 8;
+    optional SSL_VPConfigStream stream = 9;
 
     // Wait for geometry prior to processing frames
-    optional bool wait_for_geometry = 11 [default=false];
+    optional bool wait_for_geometry = 10 [default=false];
 }
