@@ -14,6 +14,7 @@
      limitations under the License.
  */
 #pragma once
+#include <eigen3/Eigen/Core>
 
 //1 indicates green, 0 pink, increasing 2d angle starting from bot orientation most significant bit to least significant bit
 const int patterns[16] = {
