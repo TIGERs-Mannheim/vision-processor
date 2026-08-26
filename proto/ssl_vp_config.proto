@@ -1,0 +1,168 @@
+syntax = "proto2";
+import "proto/ssl_gc_geometry.proto";
+
+enum SSL_VPConfigCameraDriver {
+    // FLIR cameras
+    SPINNAKER = 0;
+    // Video and image files, video4linux2 (e.g. webcams) cameras
+    OPENCV = 1;
+    // Bluefox3 cameras
+    MVIMPACT = 2;
+}
+
+enum SSL_VpConfigCameraWBType {
+    OUTDOOR = 0;
+    INDOOR = 1;
+    MANUAL = 2;
+}
+
+message SSL_VPConfigCamera {
+    // Camera driver type. Availability depending on libraries installed.
+    optional SSL_VPConfigCameraDriver driver = 1;
+
+    // Spinnaker, mvIMPACT or OpenCV(v4l2) camera id
+    optional uint32 id = 2 [default = 0];
+    // OpenCV camera device, image or video file path (if unset id is used instead)
+    optional string path = 3 [default = ""];
+
+    // Camera resolution as reported by the camera. VisionProcessor might use half (true color) resolution internally with SPINNAKER and MVIMPACT.
+    // 0 = Highest resolution supported by camera
+    optional uint32 width = 4 [default = 0];
+    optional uint32 height = 5 [default = 0];
+
+    // Camera exposure time in ms to adjust brightness. Higher values lead to more motion blur. Lower values lead to a darker image.
+    // Camera frame rate will drop if set equal to or higher than the frame time (1 / fps_cam).
+    // 0.0 = automatic exposure
+    optional float exposure = 6 [default = 0.0];
+    // Camera gain to adjust brightness. Higher values lead to more noise. Lower values lead to a darker image.
+    // Frequently changing bot identities or team colors indicate an image that is too bright (all colors becoming nearly white).
+    // 0.0 = automatic gain
+    optional float gain = 7 [default = 0.0];
+    // Camera gamma as nonlinear brightness adjustment. Only supported on SPINNAKER and OPENCV.
+    // Low values reduce differences between bright and dark illuminated areas. High values increase the color contrast.
+    // 1.0 = no gamma
+    optional float gamma = 8 [default = 1.0];
+
+    // Camera white balance. OUTDOOR or INDOOR for auto white balance with green or gray carpet respectively.
+    // (distinction between OUTDOOR and INDOOR currently only implemented for SPINNAKER backend)
+    optional SSL_VpConfigCameraWBType wb_type = 9 [default = OUTDOOR];
+    optional float wb_red = 10 [default = 1.0];
+    optional float wb_blue = 11 [default = 1.0];
+}
+
+message SSL_VPConfigGeometry {
+    // Total camera amount over the field
+    optional uint32 camera_amount = 1 [default = 1];
+    // Camera height above field in mm
+    // 0.0 = automated camera height calibration, this does not work if the camera looks perpendicular to the field.
+    optional float camera_height = 2 [default = 0.0];
+
+    // Field line crossings at the edges of the camera extent in pixels from the top left image corner.
+    // The first coordinate must be the edge with the smallest x and y field coordinate.
+    repeated Vector2 line_corners = 3;
+
+    // Enable field line pixel refinement.
+    // Disable in cluttered environments when the geometry calibration has failed multiple times in a row.
+    optional bool refinement = 4 [default=true];
+}
+
+message SSL_VPConfigThresholds {
+    // Minimum mean cosine similarity (not normalized) of the blob border gradient (0 - 195075.0)
+    // High value lead to undetected blobs. Low values lead to an increase in false positive blob detections.
+    optional float circularity = 1 [default=15.0];
+    // Minimum circularity/(3*stddev) ball blob score
+    optional float score = 2 [default=5.0];
+
+    // Minimum confidence (0.0 - 1.0)
+    optional float min_confidence = 3 [default=0.2];
+
+    // Min ball camera edge distance in mm
+    optional float min_cam_edge_distance = 4 [default=170.0];
+
+    // Maximum allowed clipping of two objects in mm
+    optional float clipping_tolerance = 5 [default=10.0];
+
+    // Added tolerance to geometry related operations in mm.
+    // Affects field border cutoff area and field line blob classification.
+    optional float geometry_tolerance = 6 [default=10.0];
+}
+
+message Color {
+    optional uint32 red = 1 [default=128];
+    optional uint32 green = 2 [default=128];
+    optional uint32 blue = 3 [default=128];
+}
+
+message VPColor {
+    optional Color reference = 1;
+    optional Color live = 2;
+}
+
+message SSL_VPConfigColor {
+    // Strength of the reference color during color updates (0.0 - 0.5-history_force/2)
+    optional float reference_force = 1 [default=0.1];
+    // Strength of the previous color during color updates (0.0 - 1.0-reference_force)
+    optional float history_force = 2 [default=0.7];
+
+    // Colors used for ball determination
+    optional VPColor orange = 3;
+    optional VPColor field = 4;
+    // Colors used for center blob determination
+    optional VPColor yellow = 5;
+    optional VPColor blue = 6;
+    // Colors used for side blob determination
+    optional VPColor green = 7;
+    optional VPColor pink = 8;
+}
+
+message SSL_VPConfigNetwork {
+    // Game controller ip address
+    optional string gc_ip = 1 [default="224.5.23.1"];
+    // Game controller UDP port
+    optional uint32 gc_port = 2 [default=10003];
+
+    // Vision IP address (port impossible to adjust over network)
+    optional string vision_ip = 3 [default="224.5.23.2"];
+}
+
+enum SSL_VPConfigStreamType {
+    RAW = 0;
+    REPROJ_FALSE_COLOR = 1;
+    REPROJ_GRADIENT_DOT = 2;
+    REPROJ_BLOB_SCORE = 3;
+}
+
+message SSL_VPConfigStream {
+    // If false no network live stream will be encoded and sent.
+    optional bool active = 1 [default=true];
+    // Type of image to transmit.
+    optional SSL_VPConfigStreamType type = 2 [default=RAW];
+    // Camera RTP stream destination IP
+    optional string stream_ip = 3 [default="127.0.0.1"];
+    optional uint32 stream_port = 4 [default=10100];
+}
+
+message SSL_VPConfig {
+    // Persistent human-readable network unique identifier (e.g. hostname or hostname:suffix if multiple VP instances on the same host).
+    required string instance = 1;
+    // Corresponding to the camera_id used in SSL_DetectionFrame. Unique per field and implies position on the field:
+    // Single camera field: 0 = global field
+    // Double camera field: 0 = -x side, 1 = +x side
+    // Quadruple cam field: 0 = -x and -y, 1 = -x and +y, 2 = +x and -y, 3 = +x and +y
+    // Configuration for more cams depending on field shape.
+    optional uint32 camera_id = 2 [default=0];
+
+    // Database of SSL game controller team names and robot heights in mm.
+    // If the team broadcasted by the game controller has no entry, the average robot height is used.
+    map<string, float> robot_heights = 3;
+
+    optional SSL_VPConfigCamera camera = 4;
+    optional SSL_VPConfigGeometry geometry = 5;
+    optional SSL_VPConfigThresholds thresholds = 6;
+    optional SSL_VPConfigColor color = 7;
+    optional SSL_VPConfigNetwork network = 8;
+    optional SSL_VPConfigStream stream = 9;
+
+    // Wait for geometry prior to processing frames
+    optional bool wait_for_geometry = 10 [default=false];
+}
