@@ -34,7 +34,7 @@ if not os.path.exists(_PROTO_OUT / 'ssl_vision_wrapper_pb2.py'):
     # Nests the bindings under `proto` and rewrites the generated cross-imports
     # to match; see proto/python/python_bindings.py.
     generate_python_bindings(
-        out_dir=_REPO_ROOT / 'python', package='proto', includes=['vision']
+        out_dir=_REPO_ROOT / 'python', package='proto', includes=['vision', 'gamecontroller']
     )
 
 

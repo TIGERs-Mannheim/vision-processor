@@ -30,7 +30,9 @@ if _bindings_are_stale():
     # The generator nests everything under `proto` and rewrites the generated
     # cross-imports to match; see proto/python/python_bindings.py for why bare
     # `--python_out` is not enough.
-    generate_python_bindings(out_dir=_BACKEND_DIR, package="proto", includes=["vision"])
+    generate_python_bindings(
+        out_dir=_BACKEND_DIR, package="proto", includes=["vision", "gamecontroller"]
+    )
 
 # The generated package is `wrapper_backend/proto/`, so `wrapper_backend/` must
 # be on sys.path for `from proto.vision.* import ...` to resolve.

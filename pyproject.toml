@@ -22,5 +22,9 @@ files = ["wrapper_backend"]
 exclude = ["wrapper_backend/proto/"]
 mypy_path = "wrapper_backend"
 
+[[tool.mypy.overrides]]
+module = "python_bindings"
+ignore_missing_imports = true
+
 [tool.ruff]
 src = ["wrapper_backend"]
