@@ -67,7 +67,7 @@ static YAML::Node getOptional(const YAML::Node& node) {
 	return node.IsDefined() ? node : YAML::Node();
 }
 
-Resources::Resources(const std::string& configPath) : configPath(configPath) {
+Resources::Resources(const std::string& configPath) : fieldReference(), configPath(configPath) {
 	YAML::Node config = YAML::LoadFile(configPath);
 	struct stat st{};
 	if(stat(configPath.c_str(), &st) == 0)

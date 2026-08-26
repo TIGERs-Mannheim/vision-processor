@@ -14,7 +14,6 @@
      limitations under the License.
  */
 #include "opencl.h"
-#include "cl_kernels.h"
 
 #include <utility>
 #include <opencv2/imgcodecs.hpp>

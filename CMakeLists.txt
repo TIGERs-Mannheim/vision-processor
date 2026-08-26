@@ -69,6 +69,7 @@ set(PROTO_FILES
         vision/ssl_vision_detection.proto
         vision/ssl_vision_geometry.proto
         vision/ssl_vision_wrapper.proto
+        vision/ssl_vp_config.proto
         gamecontroller/ssl_gc_common.proto
         gamecontroller/ssl_gc_game_event.proto
         gamecontroller/ssl_gc_geometry.proto

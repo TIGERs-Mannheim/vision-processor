@@ -19,7 +19,6 @@
 #include "GroundTruth.h"
 #include "pattern.h"
 #include "cl_kernels.h"
-#include <fstream>
 #include <opencv2/imgproc.hpp>
 
 enum BlobColor {
