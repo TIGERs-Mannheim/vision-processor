@@ -1,0 +1,84 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+# A second push to the same PR makes the first run's result irrelevant.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build (nix)
+    runs-on: ubuntu-latest
+    steps:
+      # The protocol definitions are a submodule; without them CMake fails at
+      # configure time with the "run git submodule update" message.
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - uses: DeterminateSystems/nix-installer-action@main
+      - uses: DeterminateSystems/magic-nix-cache-action@main
+
+      # The dev shell pins eigen_5. Ubuntu ships 3.4.0 through at least 26.04
+      # LTS, which lacks Matrix::canonicalEulerAngles() -- so this cannot be an
+      # apt-based job without patching the source.
+      - name: Build all targets
+        run: |
+          nix develop --command bash -c '
+            cmake -B build .
+            make -C build -j"$(nproc)" vision_processor geometry_benchmark blob_benchmark
+          '
+
+  python:
+    name: Python (wrapper_backend)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - uses: DeterminateSystems/nix-installer-action@main
+      - uses: DeterminateSystems/magic-nix-cache-action@main
+
+      # Importing wrapper_backend runs protoc against the submodule and
+      # generates wrapper_backend/proto/, which mypy needs on its path even
+      # though it excludes the generated files themselves.
+      - name: Lint and type check
+        run: |
+          nix develop --command bash -c '
+            uv sync --locked
+            uv run python -c "import wrapper_backend"
+            uv run ruff check wrapper_backend/
+            uv run ruff format --check wrapper_backend/
+            uv run mypy
+          '
+
+  frontend:
+    name: Frontend (wrapper-frontend)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: wrapper-frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: wrapper-frontend/package-lock.json
+
+      - run: npm ci
+
+      - run: npm run lint
+
+      - run: npm run format:check
+
+      - run: npm run check
+
+      - run: npm run build
