@@ -1,5 +1,8 @@
 image: ubuntu:latest
 
+variables:
+  GIT_SUBMODULE_STRATEGY: recursive
+
 stages:
   - build
 

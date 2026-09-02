@@ -19,8 +19,8 @@
 #include <thread>
 #include <mutex>
 #include <google/protobuf/message.h>
-#include "proto/ssl_vision_geometry.pb.h"
-#include "proto/ssl_vision_detection.pb.h"
+#include "proto/vision/ssl_vision_geometry.pb.h"
+#include "proto/vision/ssl_vision_detection.pb.h"
 
 #ifdef _WIN32
 #include <Winsock2.h> // before Windows.h, else Winsock 1 conflict

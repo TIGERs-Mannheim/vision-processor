@@ -15,7 +15,7 @@
  */
 #pragma once
 
-#include "proto/ssl_vision_geometry.pb.h"
+#include "proto/vision/ssl_vision_geometry.pb.h"
 #include "udpsocket.h"
 #include "CameraModel.h"
 

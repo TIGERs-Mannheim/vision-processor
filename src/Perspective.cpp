@@ -15,7 +15,7 @@
  */
 #include "Perspective.h"
 #include "pattern.h"
-#include "proto/ssl_vision_wrapper.pb.h"
+#include "proto/vision/ssl_vision_wrapper.pb.h"
 #include "log.h"
 
 #include <cmath>

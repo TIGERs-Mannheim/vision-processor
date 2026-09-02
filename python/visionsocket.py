@@ -17,30 +17,28 @@ import os
 import pathlib
 import socket
 import struct
+import sys
 import threading
 
 from google.protobuf.json_format import MessageToDict
 
-if not os.path.exists('python/proto/ssl_vision_wrapper_pb2.py'):
+_REPO_ROOT = pathlib.Path(__file__).resolve().parent.parent
+_PROTO_DEFS = _REPO_ROOT / 'proto'
+_PROTO_OUT = _REPO_ROOT / 'python' / 'proto' / 'vision'
+
+sys.path.insert(0, str(_PROTO_DEFS / 'python'))
+from python_bindings import generate_python_bindings
+
+if not os.path.exists(_PROTO_OUT / 'ssl_vision_wrapper_pb2.py'):
     print("Compiling Protobuf files...")
-    import subprocess
-    try:
-        subprocess.run([
-            'protoc',
-            '--python_out=python', '--pyi_out=python',
-            *[str(path) for path in pathlib.Path().rglob('proto/*.proto')]
-        ], check=True)
-    except subprocess.CalledProcessError:
-        # Ubuntu 22.04 protoc can't do pyi
-        subprocess.run([
-            'protoc',
-            '--python_out=python',
-            *[str(path) for path in pathlib.Path().rglob('proto/*.proto')]
-        ], check=True)
+    # Nests the bindings under `proto` and rewrites the generated cross-imports
+    # to match; see proto/python/python_bindings.py.
+    generate_python_bindings(
+        out_dir=_REPO_ROOT / 'python', package='proto', includes=['vision', 'gamecontroller']
+    )
 
 
-
-from proto.ssl_vision_wrapper_pb2 import SSL_WrapperPacket
+from proto.vision.ssl_vision_wrapper_pb2 import SSL_WrapperPacket
 
 
 def parser_vision_network(parser: argparse.ArgumentParser) -> argparse.ArgumentParser:

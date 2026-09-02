@@ -14,8 +14,8 @@
      limitations under the License.
  */
 #include "udpsocket.h"
-#include "proto/ssl_vision_wrapper.pb.h"
-#include "proto/ssl_gc_referee_message.pb.h"
+#include "proto/vision/ssl_vision_wrapper.pb.h"
+#include "proto/gamecontroller/ssl_gc_referee_message.pb.h"
 #include "driver/cameradriver.h"
 
 #include <cmath>

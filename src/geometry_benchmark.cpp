@@ -17,7 +17,7 @@
 #include <opencv2/imgproc.hpp>
 #include "Resources.h"
 #include "GroundTruth.h"
-#include "proto/ssl_vision_wrapper.pb.h"
+#include "proto/vision/ssl_vision_wrapper.pb.h"
 #include "calib/LineDetection.h"
 #include "calib/GeomModel.h"
 

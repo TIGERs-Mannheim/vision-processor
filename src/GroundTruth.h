@@ -18,7 +18,7 @@
 #include <string>
 #include <vector>
 
-#include "proto/ssl_vision_detection.pb.h"
+#include "proto/vision/ssl_vision_detection.pb.h"
 
 
 std::vector<SSL_DetectionFrame> parseGroundTruth(const std::string& source);

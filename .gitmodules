@@ -1,0 +1,4 @@
+[submodule "proto"]
+	path = proto
+	url = https://github.com/RoboCup-SSL/ssl-protocol-defs.git
+	branch = main

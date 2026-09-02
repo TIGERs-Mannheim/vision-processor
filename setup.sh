@@ -84,6 +84,8 @@ fi
 # Compile vision_processor
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 cd "$SCRIPT_DIR"
+echo -e "\e[92m »  Updating protocol definitions submodule\e[39m"
+git submodule update --init --recursive
 cmake -B build .
 make -j -C build vision_processor
 
