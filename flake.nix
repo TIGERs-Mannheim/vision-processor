@@ -40,14 +40,19 @@
             ];
 
             buildInputs = with pkgs; [
-              # Eigen 5 is required: CameraModel::getEuler() calls
-              # Matrix::canonicalEulerAngles(), which does not exist in 3.4.x.
-              # nixpkgs' default `eigen` is still 3.4.1, hence the explicit pin.
-              eigen_5
+              # Deliberately the nixpkgs default (3.4.x), matching what every
+              # distro ships: Debian, Ubuntu through 26.04 LTS, and Fedora are
+              # all still on 3.4. Pinning eigen_5 here would let code compile
+              # that does not build for anyone packaging against a distro Eigen.
+              eigen
 
               opencv            # core imgproc imgcodecs videoio
               yaml-cpp
-              ffmpeg            # libavformat libavcodec libavutil
+              # Must match the ffmpeg nixpkgs built opencv against, currently
+              # 8.1.2. The default `ffmpeg` is 9.x, which links fine but loads a
+              # second set of libav* sonames alongside the ones opencv's videoio
+              # pulls in -- two copies of ffmpeg's global state in one process.
+              ffmpeg_8          # libavformat libavcodec libavutil
               protobuf
 
               opencl-headers    # CL/cl.h
@@ -69,14 +74,15 @@
 
             shellHook = ''
               echo "vision_processor dev shell"
-              echo "  eigen      ${pkgs.eigen_5.version}"
+              echo "  eigen      ${pkgs.eigen.version}"
               echo "  opencv     ${pkgs.opencv.version}"
+              echo "  ffmpeg     ${pkgs.ffmpeg_8.version}"
               echo "  protobuf   ${pkgs.protobuf.version}"
               echo
               echo "  cmake -B build . && make -C build -j vision_processor"
               echo
               echo "Camera SDKs (Spinnaker, mvIMPACT) are proprietary and not"
-              echo "packaged here; the OpenCV backend is available regardless."
+              echo "packaged here; the OpenCV backend is available."
             '';
           };
         }
